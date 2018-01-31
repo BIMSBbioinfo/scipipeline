@@ -1,0 +1,35 @@
+"""Snakemake file."""
+
+# See tutorial at: http://tiny.cc/snakemake_tutorial
+
+import os
+
+import synapseclient
+
+import yaml
+
+import pandas as pd
+import numpy as np
+
+
+#### COMMON RUN SPECIFICS ####
+
+RUN_NAME = "sciATAC"
+OUT_DIR = 'data'
+LOGS_DIR = OUT_DIR+"/logs"
+
+INPUT_ALL = []
+
+
+
+############ BEGIN PIPELINE RULES ############
+
+include: "rules/atac.snakefile"
+
+
+#print(INPUT_ALL)
+
+#### ALL ####
+# ---
+rule all:
+    input: INPUT_ALL
