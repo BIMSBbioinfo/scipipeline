@@ -4,18 +4,15 @@
 
 import os
 
-import synapseclient
-
 import yaml
 
-import pandas as pd
 import numpy as np
 
 
 #### COMMON RUN SPECIFICS ####
 
 RUN_NAME = "sciATAC"
-OUT_DIR = 'data'
+OUT_DIR = '/scratch/AG_Akalin/wkopp/sciatac_data/'
 LOGS_DIR = OUT_DIR+"/logs"
 
 INPUT_ALL = []
