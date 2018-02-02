@@ -1,0 +1,10 @@
+(define packages '("snakemake"
+                   "bowtie@2.3"
+                   "samtools"
+                   "python"
+                   "python-numpy"
+                   "flexbar"))
+
+;; Turn the list of package names into a manifest
+(use-modules (gnu packages))
+(packages->manifest (map specification->package packages))
