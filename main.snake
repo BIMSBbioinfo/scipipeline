@@ -12,8 +12,19 @@ import numpy as np
 #### COMMON RUN SPECIFICS ####
 
 RUN_NAME = "sciATAC"
-OUT_DIR = '/scratch/AG_Akalin/wkopp/sciatac_data/'
+OUT_DIR = '/data/akalin/wkopp/sciatac_data/'
 LOGS_DIR = OUT_DIR+"/logs"
+
+# Sequencing adapters for trimming
+ADAPTERS = '/data/ohler/Scott/Asli_Scripts/sciAtacAdapters.fa'
+
+# Definition of input and output files:
+# ATAC-seq reads
+FIRST_MATE = '/scratch/AG_Ohler/Scott/sciATACtest/noSampleSheet/Undetermined_S0_R1_001.fastq.gz'
+SECOND_MATE = '/scratch/AG_Ohler/Scott/sciATACtest/noSampleSheet/Undetermined_S0_R2_001.fastq.gz'
+
+# Barcode reads
+BARCODES = '/scratch/AG_Ohler/Scott/sciATACtest/noSampleSheet/Undetermined_S0_{sample}_001.fastq.gz'
 
 INPUT_ALL = []
 
@@ -24,7 +35,7 @@ INPUT_ALL = []
 include: "rules/atac.snakefile"
 
 
-#print(INPUT_ALL)
+print(INPUT_ALL)
 
 #### ALL ####
 # ---
