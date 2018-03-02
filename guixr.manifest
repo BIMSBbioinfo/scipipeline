@@ -3,6 +3,9 @@
                    "samtools"
                    "python"
                    "python-numpy"
+                   "python-biopython"
+                   "htseq"
+                   "python-pysam"
                    "flexbar"))
 
 ;; Turn the list of package names into a manifest
