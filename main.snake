@@ -13,7 +13,7 @@ import numpy as np
 
 RUN_NAME = "sciATAC"
 OUT_DIR = '/data/akalin/wkopp/sciatac_data/'
-LOGS_DIR = OUT_DIR+"/logs"
+LOG_DIR = os.path.join(OUT_DIR, "logs")
 
 # Sequencing adapters for trimming
 ADAPTERS = '/data/ohler/Scott/Asli_Scripts/sciAtacAdapters.fa'
@@ -34,8 +34,6 @@ INPUT_ALL = []
 
 include: "rules/atac.snakefile"
 
-
-print(INPUT_ALL)
 
 #### ALL ####
 # ---
