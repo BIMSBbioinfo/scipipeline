@@ -3,7 +3,8 @@ from HTSeq import BAM_Reader
 from HTSeq import BAM_Writer
 
 
-def split_reads_by_barcode(barcodes, reads, output_dir, max_open_files):
+def split_reads_by_barcode(barcode_bams, treatment_bam, 
+                           output_dir, max_open_files):
     """Splits the reads by barcodes.
 
     This function takes a set of barcode alignments (in bam format)
@@ -26,53 +27,75 @@ def split_reads_by_barcode(barcodes, reads, output_dir, max_open_files):
 
     os.makedirs(output_dir, exist_ok=True)
 
-    barcode_readers = [iter(BAM_Reader(bamfile)) for bamfile in barcodes]
-    treatment_reader = BAM_Reader(reads)
-    output_writers = {}
-    batch_id = 0
+    treatment_reader = BAM_Reader(treatment_bam)
+    barcode_readers = [BAM_Reader(bamfile) for bamfile in barcode_bams]
 
-    bnames = [next(br) for br in barcode_readers]
     aligned_cnt = 0
     unaligned_cnt = 0
+    current_writers = dict()
+    previous_writers = set()
+    max_reached = True
 
-    for aln in treatment_reader:
-        # only retain the aligned reads
-        if not aln.aligned:
-            unaligned_cnt += 1
-            continue
-        aligned_cnt += 1
-        # extract the corresponding barcodes
-        for i, br_it in enumerate(barcode_readers):
-            while not bnames[i].read.name == aln.read.name:
-                # increment barcode names until they
-                # match the alignment read name.
-                bnames[i] = next(br_it)
+    while max_reached:
+
+        # store the previous barcodes
+        previous_writers.update({k for k in current_writers})
+        # reset the current writers
+        current_writers = dict()
+        max_reached = False
+
+        # start (again) at the beginning of the bam files
+        barcode_it = [iter(reader) for reader in barcode_readers]
+        bnames = [next(br) for br in barcode_it]
+
+        for aln in treatment_reader:
+            # only retain the aligned reads
+            if not aln.aligned:
+                unaligned_cnt += 1
+                continue
+            aligned_cnt += 1
+
+            # extract the corresponding barcodes
+            for i, br_it in enumerate(barcode_it):
+                while not bnames[i].read.name == aln.read.name:
+                    # increment barcode names until they
+                    # match the alignment read name.
+                    bnames[i] = next(br_it)
                         
-        if any([not x.aligned for x in bnames]):
-           # one or more barcodes are abscent
-           continue
+            if any([not x.aligned for x in bnames]):
+               # one or more barcodes are abscent
+               continue
 
-        comb_id = '_'.join([baln.iv.chrom for baln in bnames])
-        if not comb_id in output_writers:
-            # instantiate a new writer for the barcode
-            # if it has not already been.
-            writer = BAM_Writer.from_BAM_Reader(os.path.join(output_dir, 
-                                                             comb_id + '.{}.bam'.format(batch_id)), 
-                                                treatment_reader)
-            output_writers[comb_id] = writer
+            comb_id = '_'.join([baln.iv.chrom for baln in bnames])
 
-        # append the current read
-        output_writers[comb_id].write(aln)
+            if comb_id in previous_writers:
+                # it already was processed
+                continue
 
-        if len(output_writers) >= max_open_files:
-            # if max file size is reached, close all files
-            # and start with a new batch
-            for writer in output_writers:
-                output_writers[writer].close()
-            output_writers = dict()
-            batch_id += 1
+            if len(current_writers) >= max_open_files:
+                # If max open files reached, do not open
+                # any further bam_writers, but finish processing
+                # of the current batch
+                max_reached = True
 
-    for writer in output_writers:
-        output_writers[writer].close()
+            if not comb_id in current_writers and not max_reached:
+                # instantiate a new writer for the barcode
+                # if it has not already been.
+                writer = BAM_Writer.from_BAM_Reader(
+                    os.path.join(output_dir, comb_id + '.bam'), 
+                    treatment_reader)
+                current_writers[comb_id] = writer
 
-    print("Split {} reads. {} unaligned reads were ignored.".format(aligned_cnt, unaligned_cnt))
+            if comb_id in current_writers:
+                # append the current read
+                current_writers[comb_id].write(aln)
+
+        # close all remaining bam files
+        for writer in current_writers:
+            current_writers[writer].close()
+
+    print("Split {} reads into {} barcodes. {} unaligned reads were ignored.".format(
+        aligned_cnt, 
+        str(len(current_writers) + len(previous_writers)),
+        unaligned_cnt))
+

@@ -132,16 +132,21 @@ rule sort_mapping_pseudogenome:
 INPUT_ALL.append(expand(join(PSGENOME_OUTDIR, 'pseudo_genome_{sample}_sorted.bam'), 
                         sample=['I1', 'I2', 'I3', 'I4']))
 
+# ------------------------- #
+# Split the reads according to the barcodes
+# 
 rule split_reads_by_index:
     input:
        barcode_alns=expand(join(PSGENOME_OUTDIR, 'pseudo_genome_{sample}_sorted.bam'),
                         sample=['I1', 'I2', 'I3', 'I4']),
        read_aln=FLY_BAM_SORTED
-    output: SPLIT_OUTPUT_DIR
+    output: dynamic(join(SPLIT_OUTPUT_DIR, "{barcode}.bam"))
     run:
-       split_reads_by_barcode(input.barcode_alns, input.read_aln, output[0], 1000)
+       split_reads_by_barcode(input.barcode_alns, 
+                              input.read_aln, 
+                              os.path.dirname(output[0]), 1000)
        
-INPUT_ALL.append(SPLIT_OUTPUT_DIR)
+INPUT_ALL.append(rules.split_reads_by_index.output)
 
 #rule barcode_histogram:
 #    input: OUT_DIR + 'pseudogenome/pseudo_genome_{sample}_sorted.bam'
