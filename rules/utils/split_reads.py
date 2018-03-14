@@ -1,4 +1,5 @@
 import os
+import shutil
 from HTSeq import BAM_Reader
 from HTSeq import BAM_Writer
 
@@ -26,27 +27,28 @@ def split_reads_by_barcode(barcode_bams, treatment_bam,
     """
 
     os.makedirs(output_dir, exist_ok=True)
+    shutil.copy(treatment_bam, treatment_bam + '.remaining.bam')
 
-    treatment_reader = BAM_Reader(treatment_bam)
     barcode_readers = [BAM_Reader(bamfile) for bamfile in barcode_bams]
 
     aligned_cnt = 0
     unaligned_cnt = 0
     current_writers = dict()
-    previous_writers = set()
     max_reached = True
 
     while max_reached:
 
-        # store the previous barcodes
-        previous_writers.update({k for k in current_writers})
         # reset the current writers
         current_writers = dict()
         max_reached = False
 
+        treatment_reader = BAM_Reader(treatment_bam + '.remaining.bam')
+
         # start (again) at the beginning of the bam files
         barcode_it = [iter(reader) for reader in barcode_readers]
         bnames = [next(br) for br in barcode_it]
+        tmp_writer = BAM_Writer.from_BAM_Reader(
+            os.path.join(output_dir, 'tmp.bam'), treatment_reader)
 
         for aln in treatment_reader:
             # only retain the aligned reads
@@ -68,10 +70,6 @@ def split_reads_by_barcode(barcode_bams, treatment_bam,
 
             comb_id = '_'.join([baln.iv.chrom for baln in bnames])
 
-            if comb_id in previous_writers:
-                # it already was processed
-                continue
-
             if len(current_writers) >= max_open_files:
                 # If max open files reached, do not open
                 # any further bam_writers, but finish processing
@@ -89,10 +87,17 @@ def split_reads_by_barcode(barcode_bams, treatment_bam,
             if comb_id in current_writers:
                 # append the current read
                 current_writers[comb_id].write(aln)
+            else:
+                tmp_writer.write(aln)
 
         # close all remaining bam files
         for writer in current_writers:
             current_writers[writer].close()
+
+        tmp_writer.close()
+
+        os.rename(os.path.join(output_dir, 'tmp.bam'),
+                  treatment_bam + '.remaining.bam')
 
     print("Split {} reads into {} barcodes. {} unaligned reads were ignored.".format(
         aligned_cnt, 
