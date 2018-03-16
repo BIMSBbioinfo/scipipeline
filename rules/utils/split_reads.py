@@ -1,7 +1,6 @@
 import os
 import shutil
-from HTSeq import BAM_Reader
-from HTSeq import BAM_Writer
+from pysam import AlignmentFile
 
 
 def split_reads_by_barcode(barcode_bams, treatment_bam, 
@@ -27,9 +26,7 @@ def split_reads_by_barcode(barcode_bams, treatment_bam,
     """
 
     os.makedirs(output_dir, exist_ok=True)
-    shutil.copy(treatment_bam, treatment_bam + '.remaining.bam')
-
-    barcode_readers = [BAM_Reader(bamfile) for bamfile in barcode_bams]
+    #shutil.copy(treatment_bam, treatment_bam + '.remaining.bam')
 
     aligned_cnt = 0
     unaligned_cnt = 0
@@ -42,33 +39,35 @@ def split_reads_by_barcode(barcode_bams, treatment_bam,
         current_writers = dict()
         max_reached = False
 
-        treatment_reader = BAM_Reader(treatment_bam + '.remaining.bam')
+        treatment_reader = AlignmentFile(treatment_bam + '.remaining.bam', 'rb')
+
+        barcode_readers = [AlignmentFile(bamfile, 'rb') for bamfile in barcode_bams]
 
         # start (again) at the beginning of the bam files
-        barcode_it = [iter(reader) for reader in barcode_readers]
+        barcode_it = [reader.fetch(until_eof=True) for reader in barcode_readers]
         bnames = [next(br) for br in barcode_it]
-        tmp_writer = BAM_Writer.from_BAM_Reader(
-            os.path.join(output_dir, 'tmp.bam'), treatment_reader)
+        tmp_writer = AlignmentFile(os.path.join(output_dir, 'tmp.bam'), 'wb',
+                                   template=treatment_reader)
 
-        for aln in treatment_reader:
+        for aln in treatment_reader.fetch(until_eof=True):
             # only retain the aligned reads
-            if not aln.aligned:
+            if aln.is_unmapped:
                 unaligned_cnt += 1
                 continue
             aligned_cnt += 1
 
             # extract the corresponding barcodes
             for i, br_it in enumerate(barcode_it):
-                while not bnames[i].read.name == aln.read.name:
+                while not bnames[i].query_name == aln.query_name:
                     # increment barcode names until they
                     # match the alignment read name.
                     bnames[i] = next(br_it)
                         
-            if any([not x.aligned for x in bnames]):
+            if any([ x.is_unmapped for x in bnames]):
                # one or more barcodes are abscent
                continue
 
-            comb_id = '_'.join([baln.iv.chrom for baln in bnames])
+            comb_id = '_'.join([baln.reference_name for baln in bnames])
 
             if len(current_writers) >= max_open_files:
                 # If max open files reached, do not open
@@ -79,9 +78,8 @@ def split_reads_by_barcode(barcode_bams, treatment_bam,
             if not comb_id in current_writers and not max_reached:
                 # instantiate a new writer for the barcode
                 # if it has not already been.
-                writer = BAM_Writer.from_BAM_Reader(
-                    os.path.join(output_dir, comb_id + '.bam'), 
-                    treatment_reader)
+                writer = AlignmentFile(os.path.join(output_dir, comb_id + '.bam'), 
+                    'wb', template=treatment_reader)
                 current_writers[comb_id] = writer
 
             if comb_id in current_writers:
@@ -95,12 +93,21 @@ def split_reads_by_barcode(barcode_bams, treatment_bam,
             current_writers[writer].close()
 
         tmp_writer.close()
+        treatment_reader.close()
+        for reader in barcode_readers:
+            reader.close()
 
         os.rename(os.path.join(output_dir, 'tmp.bam'),
                   treatment_bam + '.remaining.bam')
 
-    print("Split {} reads into {} barcodes. {} unaligned reads were ignored.".format(
+    print("Split {} reads. {} unaligned reads were ignored.".format(
         aligned_cnt, 
-        str(len(current_writers) + len(previous_writers)),
         unaligned_cnt))
 
+
+if __name__ == '__main__':
+    barcode_bams = ['pseudo_genome_I{}_sorted.bam'.format(i) for i in [1,2,3,4]]
+    treatment_bam = 'test.input.bam'
+    output_dir = 'test_split'
+    max_open_files=1000
+    split_reads_by_barcode(barcode_bams, treatment_bam, output_dir, max_open_files)
