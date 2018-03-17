@@ -26,7 +26,7 @@ def split_reads_by_barcode(barcode_bams, treatment_bam,
     """
 
     os.makedirs(output_dir, exist_ok=True)
-    #shutil.copy(treatment_bam, treatment_bam + '.remaining.bam')
+    shutil.copy(treatment_bam, treatment_bam + '.remaining.bam')
 
     aligned_cnt = 0
     unaligned_cnt = 0
