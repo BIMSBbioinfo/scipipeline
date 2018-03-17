@@ -132,6 +132,16 @@ rule sort_mapping_pseudogenome:
 INPUT_ALL.append(expand(join(PSGENOME_OUTDIR, 'pseudo_genome_{sample}_sorted.bam'), 
                         sample=['I1', 'I2', 'I3', 'I4']))
 
+rule sort_split_reads:
+  input: dynamic(join(SPLIT_OUTPUT_DIR, "{barcode}.bam"))
+  output: temp(dynamic(join(SPLIT_OUTPUT_DIR + '_sorted', "{barcode}.bam")))
+  shell: "samtools sort {input} -o {output}"
+
+rule deduplicate_split_reads:
+  input: dynamic(join(SPLIT_OUTPUT_DIR + '_sorted', "{barcode}.bam"))
+  output: dynamic(join(SPLIT_OUTPUT_DIR + '_deduplicated', "{barcode}.bam"))
+  shell: "samtools rmdup {input} -o {output}"
+
 # ------------------------- #
 # Split the reads according to the barcodes
 # 
