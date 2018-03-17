@@ -39,16 +39,20 @@ def split_reads_by_barcode(barcode_bams, treatment_bam,
         current_writers = dict()
         max_reached = False
 
-        treatment_reader = AlignmentFile(treatment_bam + '.remaining.bam', 'rb')
+        treatment_reader = AlignmentFile(treatment_bam + '.remaining.bam', 
+                                         'rb')
 
-        barcode_readers = [AlignmentFile(bamfile, 'rb') for bamfile in barcode_bams]
+        barcode_readers = [AlignmentFile(bamfile, 'rb') 
+                           for bamfile in barcode_bams]
 
         # start (again) at the beginning of the bam files
-        barcode_it = [reader.fetch(until_eof=True) for reader in barcode_readers]
+        barcode_it = [reader.fetch(until_eof=True) 
+                      for reader in barcode_readers]
         bnames = [next(br) for br in barcode_it]
         tmp_writer = AlignmentFile(os.path.join(output_dir, 'tmp.bam'), 'wb',
                                    template=treatment_reader)
 
+        print("Start batch ... ")
         for aln in treatment_reader.fetch(until_eof=True):
             # only retain the aligned reads
             if aln.is_unmapped:
@@ -78,8 +82,9 @@ def split_reads_by_barcode(barcode_bams, treatment_bam,
             if not comb_id in current_writers and not max_reached:
                 # instantiate a new writer for the barcode
                 # if it has not already been.
-                writer = AlignmentFile(os.path.join(output_dir, comb_id + '.bam'), 
-                    'wb', template=treatment_reader)
+                writer = AlignmentFile(os.path.join(output_dir, 
+                                                    comb_id + '.bam'), 
+                                       'wb', template=treatment_reader)
                 current_writers[comb_id] = writer
 
             if comb_id in current_writers:
@@ -88,18 +93,25 @@ def split_reads_by_barcode(barcode_bams, treatment_bam,
             else:
                 tmp_writer.write(aln)
 
+        print("End batch ...")
         # close all remaining bam files
         for writer in current_writers:
             current_writers[writer].close()
+        print("Closed writers")
 
         tmp_writer.close()
+        print("Closed tmp writers")
         treatment_reader.close()
+        print("Closed treatment reader")
         for reader in barcode_readers:
             reader.close()
 
+        print("Closed barcode reader")
         os.rename(os.path.join(output_dir, 'tmp.bam'),
                   treatment_bam + '.remaining.bam')
+        print("Move tmp.bam to treatment.remaining.bam")
 
+    os.remove(treatment_bam + '.remaining.bam')
     print("Split {} reads. {} unaligned reads were ignored.".format(
         aligned_cnt, 
         unaligned_cnt))
