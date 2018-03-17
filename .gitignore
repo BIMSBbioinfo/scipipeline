@@ -1,0 +1,4 @@
+.new
+.snakemake
+.guix_profile*
+__pycache__
