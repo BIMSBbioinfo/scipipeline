@@ -1,3 +1,23 @@
+# single-cell ATAC-seq
+
+This repository contains code for analysing single-cell ATAC-seq dataset
+based on a combinatorial indexing approach.
+
+## Setup the environment
+The environment is managed by guix.
+To instantiate the environment run:
+
+```
+guixr package --manifext guix.manifext -p .
+```
+
+## Run the snakemake pipeline
+
+The dataset is processed using a snakemake pipeline. To reproduce the results
+invoke:
+```
+snakemake -s main.snake
+```
 
 To run the analysis, `ssh max-cluster2` and
 afterwards `qrsh`
@@ -9,3 +29,4 @@ analysis or in the pipeline.
 For example, to address project specific questions
 like hypothesis tests or exploratory analysis or other
 
+##
