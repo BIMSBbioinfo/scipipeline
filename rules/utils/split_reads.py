@@ -1,6 +1,7 @@
 import os
 import shutil
 from pysam import AlignmentFile
+from pysam import view
 
 
 def split_reads_by_barcode(barcode_bams, treatment_bam, 
@@ -115,6 +116,18 @@ def split_reads_by_barcode(barcode_bams, treatment_bam,
     print("Split {} reads. {} unaligned reads were ignored.".format(
         aligned_cnt, 
         unaligned_cnt))
+
+
+def obtain_barcode_frequencies(originals, dedup, output):
+    print(len(originals))
+    print(len(dedup))
+    print(originals[0])
+    with open(output, 'w') as f:
+        f.write("file\toriginal\tdeduplicatedi\n")
+        for ofile, defile in zip(originals, dedup):
+            ocnt = int(view(ofile, '-c'))
+            dcnt = int(view(defile, '-c'))
+            f.write("{}\t{}\t{}\n".format(os.path.basename(ofile).split('.')[0], ocnt, dcnt))
 
 
 if __name__ == '__main__':
