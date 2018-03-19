@@ -2,6 +2,7 @@ from os.path import join
 
 from utils.assemble_pseudogenome import create_pseudo_genome
 from utils.split_reads import split_reads_by_barcode
+from utils.split_reads import obtain_barcode_frequencies
 
 # Trimmed reads
 TRIM_PATTERN = join(OUT_DIR, 'atac_reads_trimmed')
@@ -132,16 +133,38 @@ rule sort_mapping_pseudogenome:
 INPUT_ALL.append(expand(join(PSGENOME_OUTDIR, 'pseudo_genome_{sample}_sorted.bam'), 
                         sample=['I1', 'I2', 'I3', 'I4']))
 
+# ------------------------- #
+# Sort the split reads
+
 rule sort_split_reads:
-  input: dynamic(join(SPLIT_OUTPUT_DIR, "{barcode}.bam"))
-  output: temp(dynamic(join(SPLIT_OUTPUT_DIR + '_sorted', "{barcode}.bam")))
+  input: join(SPLIT_OUTPUT_DIR, "{barcode}.bam")
+  output: join(SPLIT_OUTPUT_DIR + '_sorted', "{barcode}.bam")
   shell: "samtools sort {input} -o {output}"
 
-rule deduplicate_split_reads:
-  input: dynamic(join(SPLIT_OUTPUT_DIR + '_sorted', "{barcode}.bam"))
-  output: dynamic(join(SPLIT_OUTPUT_DIR + '_deduplicated', "{barcode}.bam"))
-  shell: "samtools rmdup {input} -o {output}"
+# ------------------------- #
+# Deduplicate the split reads
 
+rule deduplicate_split_reads:
+  input: join(SPLIT_OUTPUT_DIR + '_sorted', "{barcode}.bam")
+  output: join(SPLIT_OUTPUT_DIR + '_deduplicated', "{barcode}.bam")
+  shell: "samtools rmdup {input} {output}"
+
+#INPUT_ALL.append(dynamic(join(SPLIT_OUTPUT_DIR + '_deduplicated', '{barcode}.bam')))
+#INPUT_ALL.append(dynamic(join(SPLIT_OUTPUT_DIR, '{barcode}.bam')))
+
+# ------------------------- #
+# report barcode frequencies
+
+rule report_barcode_frequencies:
+    input: 
+        original = dynamic(join(SPLIT_OUTPUT_DIR, "{barcode}.bam")),
+        deduplicated = dynamic(join(SPLIT_OUTPUT_DIR + '_deduplicated', "{barcode}.bam"))
+    output:
+        join(OUT_DIR,"barcode_frequencies.tab")
+    run:
+        obtain_barcode_frequencies(input.original, input.deduplicated, output[0])
+        
+INPUT_ALL.append(rules.report_barcode_frequencies.output)
 # ------------------------- #
 # Split the reads according to the barcodes
 # 
@@ -158,10 +181,3 @@ rule split_reads_by_index:
        
 INPUT_ALL.append(rules.split_reads_by_index.output)
 
-#rule barcode_histogram:
-#    input: OUT_DIR + 'pseudogenome/pseudo_genome_{sample}_sorted.bam'
-#    output:
-#       tab=OUT_DIR + 'pseudogenome/{sample}_frequency.tab',
-#       png=OUT_DIR + 'pseudogenome/{sample}_frequency.png'
-#    run:
-#        create_histogram(input[0], OUT_DIR + 'pseudogenome/')

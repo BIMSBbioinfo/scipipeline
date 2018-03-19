@@ -2,3 +2,4 @@
 .snakemake
 .guix_profile*
 __pycache__
+.pyc
