@@ -4,8 +4,9 @@
                    "python"
                    "python-numpy"
                    "python-biopython"
-                   "htseq"
                    "python-pysam"
+                   "python-pandas"
+                   "python-matplotlib"
                    "flexbar"))
 
 ;; Turn the list of package names into a manifest
