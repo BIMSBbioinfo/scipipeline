@@ -3,6 +3,7 @@ from os.path import join
 from utils.assemble_pseudogenome import create_pseudo_genome
 from utils.split_reads import split_reads_by_barcode
 from utils.split_reads import obtain_barcode_frequencies
+from utils.split_reads import plot_barcode_frequencies
 
 # Trimmed reads
 TRIM_PATTERN = join(OUT_DIR, 'atac_reads_trimmed')
@@ -55,7 +56,7 @@ rule read_mapping:
         first=FIRST_MATE_TRIMMED, 
         second=SECOND_MATE_TRIMMED
     output: MAPPING_RESULTS
-    params: '/data/akalin/wkopp/bowtie2_indices/{reference}/genome'
+    params: '/data/akalin/wkopp/bowtie2_indices/{reference}/{reference}'
     threads: 20
     log: join(LOG_DIR, '{reference}_bowtie2.log')
     shell:
@@ -171,6 +172,7 @@ rule report_barcode_frequencies:
 INPUT_ALL.append(expand(rules.report_barcode_frequencies.output, reference=config['reference']))
 
 rule plot_barcode_freqs:
+    """Plot barcode frequency"""
     input: join(OUT_DIR, "report", "barcode_frequencies.{reference}.tab")
     output: join(OUT_DIR, "report", "barcode_frequencies_{reference}.png")
     run:
@@ -182,6 +184,7 @@ INPUT_ALL.append(expand(rules.plot_barcode_freqs.output, reference=config['refer
 # Split the reads according to the barcodes
 # 
 rule split_reads_by_index:
+    """Split reads by barcodes"""
     input:
        barcode_alns=expand(join(PSGENOME_OUTDIR, 'pseudo_genome_{barcode}_sorted.bam'),
                         barcode=config['barcodes']),
