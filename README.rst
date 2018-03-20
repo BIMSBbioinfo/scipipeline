@@ -7,9 +7,7 @@ based on a combinatorial indexing approach.
 The environment is managed by guix.
 To instantiate the environment run:
 
-```
-guixr package --manifext guix.manifext -p .
-```
+`guixr package --manifest=guixr.manifest --profile=./.guix_profile`
 
 ## Run the snakemake pipeline
 
