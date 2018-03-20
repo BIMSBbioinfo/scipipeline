@@ -1,11 +1,14 @@
 import os
 import shutil
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
 from pysam import AlignmentFile
 from pysam import view
 
 
 def split_reads_by_barcode(barcode_bams, treatment_bam, 
-                           output_dir, max_open_files):
+                           output_dir, max_open_files=1000, min_mapq=None, max_mismatches=1):
     """Splits the reads by barcodes.
 
     This function takes a set of barcode alignments (in bam format)
@@ -14,7 +17,8 @@ def split_reads_by_barcode(barcode_bams, treatment_bam,
 
     Note: The method assumes that the respective BAM files contain reads
     with corresponding read ids. Also the BAM files need to be sorted
-    by read name.
+    by read name. Furthermore, the treatment_reads must be a subset of
+    the barcode reads.
 
     barcodes : list(str)
         List of bam-file names pointing to the barcode alignments
@@ -24,6 +28,14 @@ def split_reads_by_barcode(barcode_bams, treatment_bam,
     output_dir : str
         Output directory in which the split up bam files will be
         produced.
+    max_open_files : int
+        Maximum number of writers to handle in one sweep. This is limited by the
+        operating system's limitation opening file handles. Default: 1000.
+    min_mapq : int
+        Filter for mapping quality of the barcode reads. Only reads mapq >= min_mapq
+        are considered. Default: None means no filter is applied.
+    max_mismatches : int
+        Maximum number of mismatches. Default: 1.
     """
 
     os.makedirs(output_dir, exist_ok=True)
@@ -33,6 +45,8 @@ def split_reads_by_barcode(barcode_bams, treatment_bam,
     unaligned_cnt = 0
     current_writers = dict()
     max_reached = True
+    if not min_mapq:
+        min_mapq = 0
 
     while max_reached:
 
@@ -68,9 +82,19 @@ def split_reads_by_barcode(barcode_bams, treatment_bam,
                     # match the alignment read name.
                     bnames[i] = next(br_it)
                         
-            if any([ x.is_unmapped for x in bnames]):
-               # one or more barcodes are abscent
-               continue
+            if any([x.is_unmapped or x.is_reverse for x in bnames]):
+                # one or more barcodes are abscent
+                # Barcode must map to the forward strand only
+                # Reverse strand matches are definitely due to sequencing errors
+                continue
+
+            if any([x.mapq < min_mapq for x in bnames]):
+                # remove poor mapping quality
+                continue
+
+            if any([x.get_tag('XM') <= max_mismatches for x in bnames]):
+                # maximum number of mismatches exceeded
+                continue
 
             comb_id = '_'.join([baln.reference_name for baln in bnames])
 
@@ -119,15 +143,37 @@ def split_reads_by_barcode(barcode_bams, treatment_bam,
 
 
 def obtain_barcode_frequencies(originals, dedup, output):
-    print(len(originals))
-    print(len(dedup))
-    print(originals[0])
+
     with open(output, 'w') as f:
         f.write("file\toriginal\tdeduplicatedi\n")
         for ofile, defile in zip(originals, dedup):
             ocnt = int(view(ofile, '-c'))
             dcnt = int(view(defile, '-c'))
             f.write("{}\t{}\t{}\n".format(os.path.basename(ofile).split('.')[0], ocnt, dcnt))
+
+
+def plot_barcode_frequencies(tab_file, plotname):
+    x=pd.read_csv(tab_file,sep='\t')
+    f = plt.figure()
+    plt.plot(np.log10(x['deduplicated'].sort_values(ascending=False).values//2))
+    plt.ylabel('Log10(# pairs)')
+    plt.xlabel('Barcodes')
+    plt.title('Barcode frequency (deduplicated)')
+    f.savefig(plotname, dpi=f.dpi)
+    
+
+def species_specificity(aln_file1, aln_file2, output_txt):
+    aln1 = AlignmentFile(aln_file1, 'r').fetch(until_eof=True)
+    aln2 = AlignmentFile(aln_file2, 'r').fetch(until_eof=True)
+
+    cnt = np.zeros((2,2))
+    try:
+        while 1:
+            m1 = not next(aln1).is_unmapped
+            m2 = not next(aln2).is_unmapped
+            cnt[0 if m1 else 1, 0 if m2 else 1] += 1
+    finally:
+        np.savetxt(output_txt, cnt, delimiter='\t')
 
 
 if __name__ == '__main__':

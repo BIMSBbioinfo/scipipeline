@@ -1,0 +1,18 @@
+samples:
+  FIRST_MATE: /scratch/AG_Ohler/Scott/sciATACtest/noSampleSheet/Undetermined_S0_R1_001.fastq.gz
+  SECOND_MATE: /scratch/AG_Ohler/Scott/sciATACtest/noSampleSheet/Undetermined_S0_R2_001.fastq.gz
+
+adapters: /data/ohler/Scott/Asli_Scripts/sciAtacAdapters.fa
+ 
+barcodes:
+  I1: I1
+  I2: I2
+  I3: I3
+  I4: I4
+
+reference:
+  dm6: /data/akalin/wkopp/bowtie2_indices/
+  danrer10: /data/ohler/Mahmoud/info-dm6/bowtie2/dm6
+
+
+output_dir: /data/akalin/wkopp/sciatac_data/

@@ -10,12 +10,11 @@ FIRST_MATE_TRIMMED = TRIM_PATTERN + '_1.fastq'
 SECOND_MATE_TRIMMED = TRIM_PATTERN + '_2.fastq'
 
 # Reference genome and mapping index
-FLY_BAM = join(OUT_DIR, 'atac.bam')
-FLY_BAM_SORTED = join(OUT_DIR, 'atac_sorted.bam')
-FLY_BOWTIE2_INDEX = '/data/ohler/Mahmoud/info-dm6/bowtie2/dm6'
+MAPPING_RESULTS = join(OUT_DIR, '{reference}', 'atac.bam')
+BAM_SORTED = join(OUT_DIR, '{reference}', 'atac_sorted.bam')
 
 PSGENOME_OUTDIR = join(OUT_DIR, 'pseudogenome')
-SPLIT_OUTPUT_DIR = join(OUT_DIR, 'splitreads')
+SPLIT_OUTPUT_DIR = join(OUT_DIR, '{reference}', 'splitreads')
 
 
 
@@ -29,9 +28,9 @@ SPLIT_OUTPUT_DIR = join(OUT_DIR, 'splitreads')
 rule adapter_trimming:
     """Trim adapters using flexbar"""
     input: 
-        first=FIRST_MATE, 
-        second=SECOND_MATE,
-        adapters=ADAPTERS
+        first=config['samples']['FIRST_MATE'], 
+        second=config['samples']['SECOND_MATE'], 
+        adapters=config['adapters']
     output: 
         first=FIRST_MATE_TRIMMED, 
         second=SECOND_MATE_TRIMMED
@@ -45,139 +44,160 @@ rule adapter_trimming:
         + " --min-read-length 50 "
         + " > {log}"
 
-INPUT_ALL.append(rules.adapter_trimming.output)
+#INPUT_ALL.append(rules.adapter_trimming.output)
 
 # ------------------------- #
-# Mapping to fly genome
+# Mapping to the reference genome
 
-rule read_mapping_fly:
+rule read_mapping:
+    "Maps reads against reference genome"
     input: 
         first=FIRST_MATE_TRIMMED, 
         second=SECOND_MATE_TRIMMED
-    output: FLY_BAM
+    output: MAPPING_RESULTS
+    params: '/data/akalin/wkopp/bowtie2_indices/{reference}/genome'
     threads: 20
-    log: join(LOG_DIR, 'fly_bowtie2.log')
+    log: join(LOG_DIR, '{reference}_bowtie2.log')
     shell:
         "bowtie2 -p {threads} -X 1500 --no-mixed " +
-        "--no-discordant -x " + FLY_BOWTIE2_INDEX +
+        "--no-discordant -x  {params} " +
         " -1 {input.first} -2 {input.second} 2> {log} | samtools view -bS - > " +
         "{output} "
 
 
-INPUT_ALL.append(rules.read_mapping_fly.output)
+#INPUT_ALL.append(expand(rules.read_mapping.output, reference=config['reference']))
 
 # ------------------------- #
-# Mapping to fly genome
+# Sort reads by name
 
-rule sort_mapping_fly:
+rule sort_mapping_by_name:
     """Sort the reads by name"""
-    input: FLY_BAM
-    output: FLY_BAM_SORTED
+    input: MAPPING_RESULTS
+    output: BAM_SORTED
     shell:
         "samtools sort -n {input} -o {output}"
 
-INPUT_ALL.append(rules.sort_mapping_fly.output)
+INPUT_ALL.append(expand(rules.sort_mapping_by_name.output, reference=config['reference']))
 
 # ------------------------- #
 # Construct a pseudo genome in fasta format
 
 rule make_pseudo_genomes:
     """Make pseudo genomes from indices"""
-    output: [join(PSGENOME_OUTDIR, 'pseudo_genome_I{}.fasta'.format(sample)) for sample in [1,2,3,4]]
+    input: 'meta/{barcode}.tab'
+    output: join(PSGENOME_OUTDIR, 'pseudo_genome_{barcode}.fasta')
     run:
-        create_pseudo_genome(PSGENOME_OUTDIR)
+        create_pseudo_genome(input[0], output[0])
        
-INPUT_ALL.append(rules.make_pseudo_genomes.output)
+#INPUT_ALL.append(expand(rules.make_pseudo_genomes.output, barcode=config['barcodes']))
 
 # ------------------------- #
 # Create bowtie2 index for pseudo genome
 rule make_bowtie2_index_from_pseudo_genomes:
     """Make bowtie2 index from pseudo genomes"""
-    params: join(PSGENOME_OUTDIR, 'pseudo_genome_I{sample}')
-    input: join(PSGENOME_OUTDIR, 'pseudo_genome_I{sample}.fasta')
-    output: join(PSGENOME_OUTDIR, 'pseudo_genome_I{sample}.1.bt2')
+    params: join(PSGENOME_OUTDIR, 'pseudo_genome_{barcode}')
+    input: join(PSGENOME_OUTDIR, 'pseudo_genome_{barcode}.fasta')
+    output: join(PSGENOME_OUTDIR, 'pseudo_genome_{barcode}.1.bt2')
     shell:
         "bowtie2-build {input} {params}"
         
-INPUT_ALL.append(expand(join(PSGENOME_OUTDIR, 'pseudo_genome_I{sample}.1.bt2'), sample=[1,2,3,4]))
+#INPUT_ALL.append(expand(join(PSGENOME_OUTDIR, 'pseudo_genome_{barcode}.1.bt2'), barcode=config['barcodes']))
 
 
 # ------------------------- #
 # Mapping to pseudo genome
 
-rule map_to_pseudo_genomes:
+rule map_to_pseudo_genome:
     """Make bowtie2 index from pseudo genomes"""
-    params: join(PSGENOME_OUTDIR, 'pseudo_genome_{sample}')
+    params: join(PSGENOME_OUTDIR, 'pseudo_genome_{barcode}')
     input: 
-        fastq = BARCODES
-    output: join(PSGENOME_OUTDIR, 'pseudo_genome_{sample}.bam')
+        fastq = BARCODE_TEMPLATE,
+        index = join(PSGENOME_OUTDIR, 'pseudo_genome_{barcode}.1.bt2')
+    output: join(PSGENOME_OUTDIR, 'pseudo_genome_{barcode}.bam')
     threads: 10
-    log: join(LOG_DIR, 'pseudo_genome_{sample}.log')
+    log: join(LOG_DIR, 'pseudo_genome_{barcode}.log')
     shell:
         "bowtie2 -p {threads} -x {params} -U {input.fastq} 2> {log} | samtools view -bS - >" +
         " {output} "
         
-INPUT_ALL.append(expand(join(PSGENOME_OUTDIR, 'pseudo_genome_{sample}.bam'), 
-                        sample=['I1', 'I2', 'I3', 'I4']))
+#INPUT_ALL.append(expand(join(PSGENOME_OUTDIR, 'pseudo_genome_{barcode}.bam'), 
+                        #barcode=['I1', 'I2', 'I3', 'I4']))
 
 # ------------------------- #
 # Mapping to pseudo genome
 
-rule sort_mapping_pseudogenome:
+rule sort_mapping_pseudo_genome:
     """Sort the reads by name"""
     input: join(PSGENOME_OUTDIR, 'pseudo_genome_{sample}.bam')
     output: join(PSGENOME_OUTDIR, 'pseudo_genome_{sample}_sorted.bam')
     shell:
         "samtools sort -n {input} -o {output}" 
 
-INPUT_ALL.append(expand(join(PSGENOME_OUTDIR, 'pseudo_genome_{sample}_sorted.bam'), 
-                        sample=['I1', 'I2', 'I3', 'I4']))
+INPUT_ALL.append(expand(join(PSGENOME_OUTDIR, 'pseudo_genome_{barcode}_sorted.bam'), 
+                        barcode=config['barcodes']))
 
 # ------------------------- #
 # Sort the split reads
 
 rule sort_split_reads:
-  input: join(SPLIT_OUTPUT_DIR, "{barcode}.bam")
-  output: join(SPLIT_OUTPUT_DIR + '_sorted', "{barcode}.bam")
-  shell: "samtools sort {input} -o {output}"
+    """Sort split reads"""
+    input: join(SPLIT_OUTPUT_DIR, "{reference}", "{combar}.bam")
+    output: join(SPLIT_OUTPUT_DIR + '_sorted', "{reference}", "{combar}.bam")
+    shell: "samtools sort {input} -o {output}"
 
 # ------------------------- #
 # Deduplicate the split reads
 
 rule deduplicate_split_reads:
-  input: join(SPLIT_OUTPUT_DIR + '_sorted', "{barcode}.bam")
-  output: join(SPLIT_OUTPUT_DIR + '_deduplicated', "{barcode}.bam")
-  shell: "samtools rmdup {input} {output}"
+    """Deduplicate split reads"""
+    input: join(SPLIT_OUTPUT_DIR + '_sorted', "{reference}", "{combar}.bam")
+    output: join(SPLIT_OUTPUT_DIR + '_deduplicated', "{reference}", "{combar}.bam")
+    shell: "samtools rmdup {input} {output}"
 
-#INPUT_ALL.append(dynamic(join(SPLIT_OUTPUT_DIR + '_deduplicated', '{barcode}.bam')))
-#INPUT_ALL.append(dynamic(join(SPLIT_OUTPUT_DIR, '{barcode}.bam')))
 
 # ------------------------- #
 # report barcode frequencies
 
 rule report_barcode_frequencies:
+    """Report barcode frequencies"""
     input: 
-        original = dynamic(join(SPLIT_OUTPUT_DIR, "{barcode}.bam")),
-        deduplicated = dynamic(join(SPLIT_OUTPUT_DIR + '_deduplicated', "{barcode}.bam"))
+        original = dynamic(join(SPLIT_OUTPUT_DIR, "{reference}", "{{combar}}.bam")),
+        deduplicated = dynamic(join(SPLIT_OUTPUT_DIR + '_deduplicated', "{reference}", "{{combar}}.bam"))
     output:
-        join(OUT_DIR,"barcode_frequencies.tab")
+        join(OUT_DIR, "report", "barcode_frequencies.{reference}.tab")
     run:
         obtain_barcode_frequencies(input.original, input.deduplicated, output[0])
         
-INPUT_ALL.append(rules.report_barcode_frequencies.output)
+INPUT_ALL.append(expand(rules.report_barcode_frequencies.output, reference=config['reference']))
+
+rule plot_barcode_freqs:
+    input: join(OUT_DIR, "report", "barcode_frequencies.{reference}.tab")
+    output: join(OUT_DIR, "report", "barcode_frequencies_{reference}.png")
+    run:
+        plot_barcode_frequencies(input[0], output[0])
+
+INPUT_ALL.append(expand(rules.plot_barcode_freqs.output, reference=config['reference']))
+
 # ------------------------- #
 # Split the reads according to the barcodes
 # 
 rule split_reads_by_index:
     input:
-       barcode_alns=expand(join(PSGENOME_OUTDIR, 'pseudo_genome_{sample}_sorted.bam'),
-                        sample=['I1', 'I2', 'I3', 'I4']),
-       read_aln=FLY_BAM_SORTED
-    output: dynamic(join(SPLIT_OUTPUT_DIR, "{barcode}.bam"))
+       barcode_alns=expand(join(PSGENOME_OUTDIR, 'pseudo_genome_{barcode}_sorted.bam'),
+                        barcode=config['barcodes']),
+       read_aln=BAM_SORTED
+    output: dynamic(join(SPLIT_OUTPUT_DIR, "{reference}", "{combar}.bam"))
+    params:
+       max_open_files = 1000,
+       min_mapq = 40,
+       max_mismatches = 1
     run:
        split_reads_by_barcode(input.barcode_alns, 
                               input.read_aln, 
-                              os.path.dirname(output[0]), 1000)
+                              os.path.dirname(output[0]), max_open_files,
+                              min_mapq, max_mismatches)
        
-INPUT_ALL.append(rules.split_reads_by_index.output)
+INPUT_ALL.append(dynamic(expand(join(SPLIT_OUTPUT_DIR, "{reference}", "{{combar}}.bam"), reference=config['reference'])))
+#INPUT_ALL.append(dynamic(join(SPLIT_OUTPUT_DIR, "dm6", "{barcode}.bam")))
+#INPUT_ALL.append(dynamic(join(SPLIT_OUTPUT_DIR, "denrer10", "{barcode}.bam")))
 
