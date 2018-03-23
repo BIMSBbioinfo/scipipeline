@@ -3,6 +3,7 @@ import shutil
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+import seaborn as sns
 from pysam import AlignmentFile
 from pysam import view
 
@@ -162,7 +163,7 @@ def plot_barcode_frequencies(tab_file, plotname):
     f.savefig(plotname, dpi=f.dpi)
     
 
-def species_specificity(aln_file1, aln_file2, output_txt):
+def species_specificity(aln_file1, aln_file2, output, labels):
     aln1 = AlignmentFile(aln_file1, 'r').fetch(until_eof=True)
     aln2 = AlignmentFile(aln_file2, 'r').fetch(until_eof=True)
 
@@ -172,8 +173,17 @@ def species_specificity(aln_file1, aln_file2, output_txt):
             m1 = not next(aln1).is_unmapped
             m2 = not next(aln2).is_unmapped
             cnt[0 if m1 else 1, 0 if m2 else 1] += 1
+    except StopIteration:
+        pass
     finally:
-        np.savetxt(output_txt, cnt, delimiter='\t')
+        print(cnt)
+        f = plt.figure()
+        sns.heatmap(cnt/cnt.sum(), annot=True, cmap='YlGnBu', 
+                    xticklabels=['mapped', 'unmapped'], yticklabels=['mapped', 'unmapped'])
+        plt.ylabel(labels[0])
+        plt.xlabel(labels[1])
+        f.savefig(output + '.png', dpi=f.dpi)
+        np.savetxt(output + '.txt', cnt, delimiter='\t')
 
 
 if __name__ == '__main__':
