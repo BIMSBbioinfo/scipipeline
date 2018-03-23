@@ -7,6 +7,7 @@
                    "python-pysam"
                    "python-pandas"
                    "python-matplotlib"
+                   "python-seaborn"
                    "flexbar"))
 
 ;; Turn the list of package names into a manifest
