@@ -12,7 +12,7 @@ barcodes:
 
 reference:
   dm6: /data/akalin/wkopp/bowtie2_indices/
-  danrer10: /data/ohler/Mahmoud/info-dm6/bowtie2/dm6
+  danrer10: /data/akalin/wkopp/bowtie2_indices/
 
 
 output_dir: /data/akalin/wkopp/sciatac_data/
