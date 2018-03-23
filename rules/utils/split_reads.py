@@ -92,7 +92,7 @@ def split_reads_by_barcode(barcode_bams, treatment_bam,
                 # remove poor mapping quality
                 continue
 
-            if any([x.get_tag('XM') <= max_mismatches for x in bnames]):
+            if any([x.get_tag('XM') > max_mismatches for x in bnames]):
                 # maximum number of mismatches exceeded
                 continue
 
