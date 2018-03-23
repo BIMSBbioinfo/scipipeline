@@ -4,6 +4,7 @@ from utils.assemble_pseudogenome import create_pseudo_genome
 from utils.split_reads import split_reads_by_barcode
 from utils.split_reads import obtain_barcode_frequencies
 from utils.split_reads import plot_barcode_frequencies
+from utils.split_reads import species_specificity
 
 # Trimmed reads
 TRIM_PATTERN = join(OUT_DIR, 'atac_reads_trimmed')
@@ -78,7 +79,7 @@ rule sort_mapping_by_name:
     shell:
         "samtools sort -n {input} -o {output}"
 
-INPUT_ALL.append(expand(rules.sort_mapping_by_name.output, reference=config['reference']))
+#INPUT_ALL.append(expand(rules.sort_mapping_by_name.output, reference=config['reference']))
 
 # ------------------------- #
 # Construct a pseudo genome in fasta format
@@ -127,23 +128,23 @@ rule map_to_pseudo_genome:
 # ------------------------- #
 # Mapping to pseudo genome
 
-rule sort_mapping_pseudo_genome:
+rule sort_mapping_pseudo_genome_by_name:
     """Sort the reads by name"""
     input: join(PSGENOME_OUTDIR, 'pseudo_genome_{sample}.bam')
     output: join(PSGENOME_OUTDIR, 'pseudo_genome_{sample}_sorted.bam')
     shell:
         "samtools sort -n {input} -o {output}" 
 
-INPUT_ALL.append(expand(join(PSGENOME_OUTDIR, 'pseudo_genome_{barcode}_sorted.bam'), 
-                        barcode=config['barcodes']))
+#INPUT_ALL.append(expand(join(PSGENOME_OUTDIR, 'pseudo_genome_{barcode}_sorted.bam'), 
+                        #barcode=config['barcodes']))
 
 # ------------------------- #
 # Sort the split reads
 
 rule sort_split_reads:
     """Sort split reads"""
-    input: join(SPLIT_OUTPUT_DIR, "{reference}", "{combar}.bam")
-    output: join(SPLIT_OUTPUT_DIR + '_sorted', "{reference}", "{combar}.bam")
+    input: join(SPLIT_OUTPUT_DIR, "{combar}.bam")
+    output: join(SPLIT_OUTPUT_DIR + '_sorted', "{combar}.bam")
     shell: "samtools sort {input} -o {output}"
 
 # ------------------------- #
@@ -151,8 +152,8 @@ rule sort_split_reads:
 
 rule deduplicate_split_reads:
     """Deduplicate split reads"""
-    input: join(SPLIT_OUTPUT_DIR + '_sorted', "{reference}", "{combar}.bam")
-    output: join(SPLIT_OUTPUT_DIR + '_deduplicated', "{reference}", "{combar}.bam")
+    input: join(SPLIT_OUTPUT_DIR + '_sorted', "{combar}.bam")
+    output: join(SPLIT_OUTPUT_DIR + '_deduplicated', "{combar}.bam")
     shell: "samtools rmdup {input} {output}"
 
 
@@ -162,8 +163,8 @@ rule deduplicate_split_reads:
 rule report_barcode_frequencies:
     """Report barcode frequencies"""
     input: 
-        original = dynamic(join(SPLIT_OUTPUT_DIR, "{reference}", "{{combar}}.bam")),
-        deduplicated = dynamic(join(SPLIT_OUTPUT_DIR + '_deduplicated', "{reference}", "{{combar}}.bam"))
+        original = dynamic(join(SPLIT_OUTPUT_DIR, "{{combar}}.bam")),
+        deduplicated = dynamic(join(SPLIT_OUTPUT_DIR + '_deduplicated', "{{combar}}.bam"))
     output:
         join(OUT_DIR, "report", "barcode_frequencies.{reference}.tab")
     run:
@@ -189,7 +190,7 @@ rule split_reads_by_index:
        barcode_alns=expand(join(PSGENOME_OUTDIR, 'pseudo_genome_{barcode}_sorted.bam'),
                         barcode=config['barcodes']),
        read_aln=BAM_SORTED
-    output: dynamic(join(SPLIT_OUTPUT_DIR, "{reference}", "{combar}.bam"))
+    output: dynamic(join(SPLIT_OUTPUT_DIR, "{combar}.bam"))
     params:
        max_open_files = 1000,
        min_mapq = 40,
@@ -197,10 +198,16 @@ rule split_reads_by_index:
     run:
        split_reads_by_barcode(input.barcode_alns, 
                               input.read_aln, 
-                              os.path.dirname(output[0]), max_open_files,
-                              min_mapq, max_mismatches)
+                              os.path.dirname(output[0]), params.max_open_files,
+                              params.min_mapq, params.max_mismatches)
        
-INPUT_ALL.append(dynamic(expand(join(SPLIT_OUTPUT_DIR, "{reference}", "{{combar}}.bam"), reference=config['reference'])))
-#INPUT_ALL.append(dynamic(join(SPLIT_OUTPUT_DIR, "dm6", "{barcode}.bam")))
-#INPUT_ALL.append(dynamic(join(SPLIT_OUTPUT_DIR, "denrer10", "{barcode}.bam")))
+#INPUT_ALL.append(dynamic(expand(join(SPLIT_OUTPUT_DIR, "{{combar}}.bam"), reference=config['reference'])))
 
+rule read_cooccurrence_by_species:
+    """How frequently do reads map uniquely to one species or to both?"""
+    input: expand(BAM_SORTED, reference=config['reference'])
+    output: export(join(OUT_DIR, "report", "read_cooccurrence.{suffix}"), suffix=['tab', 'png'])
+    run:
+        species_specificity(input[0], input[1], output[0].split('.')[0], expand('{reference}', reference=config['reference']))
+
+INPUT_ALL.append(rules.read_cooccurrence_by_species.output)
