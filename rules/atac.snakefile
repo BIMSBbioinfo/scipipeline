@@ -206,7 +206,7 @@ rule split_reads_by_index:
 rule read_cooccurrence_by_species:
     """How frequently do reads map uniquely to one species or to both?"""
     input: expand(BAM_SORTED, reference=config['reference'])
-    output: export(join(OUT_DIR, "report", "read_cooccurrence.{suffix}"), suffix=['tab', 'png'])
+    output: expand(join(OUT_DIR, "report", "read_cooccurrence.{suffix}"), suffix=['tab', 'png'])
     run:
         species_specificity(input[0], input[1], output[0].split('.')[0], expand('{reference}', reference=config['reference']))
 
