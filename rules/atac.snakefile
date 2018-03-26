@@ -163,8 +163,8 @@ rule deduplicate_split_reads:
 rule report_barcode_frequencies:
     """Report barcode frequencies"""
     input: 
-        original = dynamic(join(SPLIT_OUTPUT_DIR, "{{combar}}.bam")),
-        deduplicated = dynamic(join(SPLIT_OUTPUT_DIR + '_deduplicated', "{{combar}}.bam"))
+        original = dynamic(join(SPLIT_OUTPUT_DIR, "{combar}.bam")),
+        deduplicated = dynamic(join(SPLIT_OUTPUT_DIR + '_deduplicated', "{combar}.bam"))
     output:
         join(OUT_DIR, "report", "barcode_frequencies.{reference}.tab")
     run:
@@ -201,7 +201,7 @@ rule split_reads_by_index:
                               os.path.dirname(output[0]), params.max_open_files,
                               params.min_mapq, params.max_mismatches)
        
-#INPUT_ALL.append(dynamic(expand(join(SPLIT_OUTPUT_DIR, "{{combar}}.bam"), reference=config['reference'])))
+#INPUT_ALL.append(dynamic(expand(join(SPLIT_OUTPUT_DIR, "{combar}.bam"), reference=config['reference'])))
 
 rule read_cooccurrence_by_species:
     """How frequently do reads map uniquely to one species or to both?"""
