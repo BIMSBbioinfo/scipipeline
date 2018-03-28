@@ -9,7 +9,7 @@ from pysam import AlignmentFile
 from pysam import view
 
 
-def split_reads_by_barcode(barcode_bams, treatment_bam, 
+def split_reads_by_barcode(barcode_bams, treatment_bam,
                            output_dir, max_open_files=1000, min_mapq=None, max_mismatches=1):
     """Splits the reads by barcodes.
 
@@ -56,14 +56,14 @@ def split_reads_by_barcode(barcode_bams, treatment_bam,
         current_writers = dict()
         max_reached = False
 
-        treatment_reader = AlignmentFile(treatment_bam + '.remaining.bam', 
+        treatment_reader = AlignmentFile(treatment_bam + '.remaining.bam',
                                          'rb')
 
-        barcode_readers = [AlignmentFile(bamfile, 'rb') 
+        barcode_readers = [AlignmentFile(bamfile, 'rb')
                            for bamfile in barcode_bams]
 
         # start (again) at the beginning of the bam files
-        barcode_it = [reader.fetch(until_eof=True) 
+        barcode_it = [reader.fetch(until_eof=True)
                       for reader in barcode_readers]
         bnames = [next(br) for br in barcode_it]
         tmp_writer = AlignmentFile(os.path.join(output_dir, 'tmp.bam'), 'wb',
@@ -83,7 +83,7 @@ def split_reads_by_barcode(barcode_bams, treatment_bam,
                     # increment barcode names until they
                     # match the alignment read name.
                     bnames[i] = next(br_it)
-                        
+
             if any([x.is_unmapped or x.is_reverse for x in bnames]):
                 # one or more barcodes are abscent
                 # Barcode must map to the forward strand only
@@ -109,8 +109,8 @@ def split_reads_by_barcode(barcode_bams, treatment_bam,
             if not comb_id in current_writers and not max_reached:
                 # instantiate a new writer for the barcode
                 # if it has not already been.
-                writer = AlignmentFile(os.path.join(output_dir, 
-                                                    comb_id + '.bam'), 
+                writer = AlignmentFile(os.path.join(output_dir,
+                                                    comb_id + '.bam'),
                                        'wb', template=treatment_reader)
                 current_writers[comb_id] = writer
 
@@ -140,7 +140,7 @@ def split_reads_by_barcode(barcode_bams, treatment_bam,
 
     os.remove(treatment_bam + '.remaining.bam')
     print("Split {} reads. {} unaligned reads were ignored.".format(
-        aligned_cnt, 
+        aligned_cnt,
         unaligned_cnt))
 
 
@@ -162,9 +162,9 @@ def plot_barcode_frequencies(tab_file, plotname):
     plt.xlabel('Barcodes')
     plt.title('Barcode frequency (deduplicated)')
     f.savefig(plotname, dpi=f.dpi)
-    
 
-def scatter_frequencies_per_species(tables, labels, plotname):
+
+def scatter_log_frequencies_per_species(tables, labels, plotname):
     t1 = pd.read_csv(tables[0], sep='\t', index_col='file')
     t2 = pd.read_csv(tables[1], sep='\t', index_col='file')
     joined = pd.concat([t1,t2], axis=1, join='inner')
@@ -173,11 +173,11 @@ def scatter_frequencies_per_species(tables, labels, plotname):
     #joined = joined.apply(np.log10)
     f, ax = plt.subplots()
     ax = joined.plot.scatter(labels[0], labels[1], ax=ax, loglog=True, alpha=.2)
-    ax.set_xlabel('{} # barcodes'.format(labels[0]))
-    ax.set_ylabel('{} # barcodes'.format(labels[1]))
+    ax.set_xlabel('# Reads per barcode in {}'.format(labels[0]))
+    ax.set_ylabel('# Reads per barcode in {}'.format(labels[1]))
     #ax.set_xlabel(
     f.savefig(plotname, dpi=f.dpi)
-    
+
 def scatter_frequencies_per_species_colored(tables, labels, plotname):
     t1 = pd.read_csv(tables[0], sep='\t')
     t2 = pd.read_csv(tables[1], sep='\t')
@@ -193,11 +193,42 @@ def scatter_frequencies_per_species_colored(tables, labels, plotname):
     f, ax = plt.subplots()
     ax = joined.plot.scatter(labels[0], labels[1], ax=ax, loglog=True, alpha=.2, color=joined.color)
     ax = joined.plot.scatter(labels[0], labels[1], ax=ax, alpha=.2, color=joined.color)
-    ax.set_xlabel('{} # barcodes'.format(labels[0]))
-    ax.set_ylabel('{} # barcodes'.format(labels[1]))
+    ax.set_xlabel('# Reads per barcode in {}'.format(labels[0]))
+    ax.set_ylabel('# Reads per barcode in {}'.format(labels[1]))
     #ax.set_xlabel(
     f.savefig(plotname, dpi=f.dpi)
-    
+
+
+def density_frequencies_per_species_colored(tables, labels, plotname):
+    t1 = pd.read_csv(tables[0], sep='\t')
+    t2 = pd.read_csv(tables[1], sep='\t')
+    for df in [t1, t2]:
+        df['I1'] = df['file'].apply(lambda x: int(x.split('_')[0].split('-')[1]))
+
+    joined = pd.merge(t1, t2, how='inner', on='file')
+    joined['color'] = joined.I1_x.apply(lambda x: 'red' if x<5 else 'blue')
+    joined = joined[['deduplicated_x', 'deduplicated_y', 'color']]
+    joined.columns = labels + ['color']
+
+    f, ax = plt.subplots()
+    ax.set_aspect('equal')
+
+    fish_barcodes = joined.query("color == 'red'")
+    fly_barcodes = joined.query("color == 'blue'")
+    ax = sns.kdeplot(fish_barcodes.deduplicated_x,
+                     fish_barcodes.deduplicated_y,
+                     cmap="Reds", shade=True, shade_lowest=False)
+    ax = sns.kdeplot(fly_barcodes.deduplicated_x,
+                     fly_barcodes.deduplicated_y,
+                     cmap="Blues", shade=True, shade_lowest=False)
+    ax.set_xlabel('Reads per {} barcode'.format(labels[0]))
+    ax.set_ylabel('Reads per {} barcodes'.format(labels[1]))
+    ax.set_xlim(0, 700000)
+    ax.set_ylim(0, 700000)
+    red = sns.color_palette("Reds")[-2]
+    blue = sns.color_palette("Blues")[-2]
+    f.savefig(plotname, dpi=f.dpi)
+
 
 def species_specificity(aln_file1, aln_file2, output, labels):
     aln1 = AlignmentFile(aln_file1, 'r').fetch(until_eof=True)
@@ -214,7 +245,7 @@ def species_specificity(aln_file1, aln_file2, output, labels):
     finally:
         print(cnt)
         f = plt.figure()
-        sns.heatmap(cnt/cnt.sum(), annot=True, cmap='YlGnBu', 
+        sns.heatmap(cnt/cnt.sum(), annot=True, cmap='YlGnBu',
                     xticklabels=['mapped', 'unmapped'], yticklabels=['mapped', 'unmapped'])
         plt.ylabel(labels[0])
         plt.xlabel(labels[1])
