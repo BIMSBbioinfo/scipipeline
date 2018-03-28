@@ -5,6 +5,7 @@ from utils.split_reads import split_reads_by_barcode
 from utils.split_reads import obtain_barcode_frequencies
 from utils.split_reads import plot_barcode_frequencies
 from utils.split_reads import species_specificity
+from utils.split_reads import scatter_frequencies_per_species
 
 # Trimmed reads
 TRIM_PATTERN = join(OUT_DIR, 'atac_reads_trimmed')
@@ -172,6 +173,9 @@ rule report_barcode_frequencies:
         
 INPUT_ALL.append(expand(rules.report_barcode_frequencies.output, reference=config['reference']))
 
+
+# ------------------------ #
+#
 rule plot_barcode_freqs:
     """Plot barcode frequency"""
     input: join(OUT_DIR, "report", "barcode_frequencies.{reference}.tab")
@@ -180,6 +184,22 @@ rule plot_barcode_freqs:
         plot_barcode_frequencies(input[0], output[0])
 
 INPUT_ALL.append(expand(rules.plot_barcode_freqs.output, reference=config['reference']))
+
+# ------------------------ #
+#
+rule scatterplot_barcode_freqs:
+    """Plot barcode frequency"""
+    input: 
+        tables = expand(join(OUT_DIR, "report", 
+           "barcode_frequencies.{reference}.tab"), reference=config['reference']),
+    params:
+        names = expand('{reference}', reference=config['reference'])
+
+    output: join(OUT_DIR, "report", "barcode_frequencies_scatter.png")
+    run:
+        scatter_frequencies_per_species(input.tables, params.names, output[0])
+
+INPUT_ALL.append(rules.scatterplot_barcode_freqs.output)
 
 # ------------------------- #
 # Split the reads according to the barcodes
