@@ -3,6 +3,7 @@ import shutil
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+plt.switch_backend('agg')
 import seaborn as sns
 from pysam import AlignmentFile
 from pysam import view
@@ -146,7 +147,7 @@ def split_reads_by_barcode(barcode_bams, treatment_bam,
 def obtain_barcode_frequencies(originals, dedup, output):
 
     with open(output, 'w') as f:
-        f.write("file\toriginal\tdeduplicatedi\n")
+        f.write("file\toriginal\tdeduplicated\n")
         for ofile, defile in zip(originals, dedup):
             ocnt = int(view(ofile, '-c'))
             dcnt = int(view(defile, '-c'))
@@ -160,6 +161,41 @@ def plot_barcode_frequencies(tab_file, plotname):
     plt.ylabel('Log10(# pairs)')
     plt.xlabel('Barcodes')
     plt.title('Barcode frequency (deduplicated)')
+    f.savefig(plotname, dpi=f.dpi)
+    
+
+def scatter_frequencies_per_species(tables, labels, plotname):
+    t1 = pd.read_csv(tables[0], sep='\t', index_col='file')
+    t2 = pd.read_csv(tables[1], sep='\t', index_col='file')
+    joined = pd.concat([t1,t2], axis=1, join='inner')
+    joined = joined['deduplicated']
+    joined.columns = labels
+    #joined = joined.apply(np.log10)
+    f, ax = plt.subplots()
+    ax = joined.plot.scatter(labels[0], labels[1], ax=ax, loglog=True, alpha=.2)
+    ax.set_xlabel('{} # barcodes'.format(labels[0]))
+    ax.set_ylabel('{} # barcodes'.format(labels[1]))
+    #ax.set_xlabel(
+    f.savefig(plotname, dpi=f.dpi)
+    
+def scatter_frequencies_per_species_colored(tables, labels, plotname):
+    t1 = pd.read_csv(tables[0], sep='\t')
+    t2 = pd.read_csv(tables[1], sep='\t')
+    for df in [t1, t2]:
+        df['I1'] = df['file'].apply(lambda x: int(x.split('_')[0].split('-')[1]))
+
+    #joined = pd.concat([t1,t2], axis=1, join='inner', on='file')
+    joined = pd.merge(t1, t2, how='inner', on='file')
+    joined['color'] = joined.I1_x.apply(lambda x: 'red' if x<5 else 'blue')
+    joined = joined[['deduplicated_x', 'deduplicated_y', 'color']]
+    joined.columns = labels + ['color']
+    #joined = joined.apply(np.log10)
+    f, ax = plt.subplots()
+    ax = joined.plot.scatter(labels[0], labels[1], ax=ax, loglog=True, alpha=.2, color=joined.color)
+    ax = joined.plot.scatter(labels[0], labels[1], ax=ax, alpha=.2, color=joined.color)
+    ax.set_xlabel('{} # barcodes'.format(labels[0]))
+    ax.set_ylabel('{} # barcodes'.format(labels[1]))
+    #ax.set_xlabel(
     f.savefig(plotname, dpi=f.dpi)
     
 
@@ -183,7 +219,7 @@ def species_specificity(aln_file1, aln_file2, output, labels):
         plt.ylabel(labels[0])
         plt.xlabel(labels[1])
         f.savefig(output + '.png', dpi=f.dpi)
-        np.savetxt(output + '.txt', cnt, delimiter='\t')
+        np.savetxt(output + '.tab', cnt, delimiter='\t')
 
 
 if __name__ == '__main__':
