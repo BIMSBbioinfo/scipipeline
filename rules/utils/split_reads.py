@@ -167,14 +167,18 @@ def plot_barcode_frequencies(tab_file, plotname):
 def scatter_log_frequencies_per_species(tables, labels, plotname):
     t1 = pd.read_csv(tables[0], sep='\t', index_col='file')
     t2 = pd.read_csv(tables[1], sep='\t', index_col='file')
-    joined = pd.concat([t1,t2], axis=1, join='inner')
-    joined = joined['deduplicated']
-    joined.columns = labels
-    #joined = joined.apply(np.log10)
+    for df in [t1, t2]:
+        df['I1'] = df['file'].apply(lambda x: int(x.split('_')[0].split('-')[1]))
+
+    #joined = pd.concat([t1,t2], axis=1, join='inner', on='file')
+    joined = pd.merge(t1, t2, how='inner', on='file')
+    joined['color'] = joined.I1_x.apply(lambda x: 'red' if x<5 else 'blue')
+    joined = joined[['deduplicated_x', 'deduplicated_y', 'color']]
+    joined.columns = labels + ['color']
     f, ax = plt.subplots()
     ax = joined.plot.scatter(labels[0], labels[1], ax=ax, loglog=True, alpha=.2)
-    ax.set_xlabel('# Reads per barcode in {}'.format(labels[0]))
-    ax.set_ylabel('# Reads per barcode in {}'.format(labels[1]))
+    ax.set_xlabel('Reads per {} barcode'.format(labels[0]))
+    ax.set_ylabel('Reads per {} barcode'.format(labels[1]))
     #ax.set_xlabel(
     f.savefig(plotname, dpi=f.dpi)
 
@@ -191,10 +195,11 @@ def scatter_frequencies_per_species_colored(tables, labels, plotname):
     joined.columns = labels + ['color']
     #joined = joined.apply(np.log10)
     f, ax = plt.subplots()
-    ax = joined.plot.scatter(labels[0], labels[1], ax=ax, loglog=True, alpha=.2, color=joined.color)
     ax = joined.plot.scatter(labels[0], labels[1], ax=ax, alpha=.2, color=joined.color)
-    ax.set_xlabel('# Reads per barcode in {}'.format(labels[0]))
-    ax.set_ylabel('# Reads per barcode in {}'.format(labels[1]))
+    ax.set_xlabel('Reads per {} barcode'.format(labels[0]))
+    ax.set_ylabel('Reads per {} barcode'.format(labels[1]))
+    ax.set_xlim(0, 70000)
+    ax.set_ylim(0, 70000)
     #ax.set_xlabel(
     f.savefig(plotname, dpi=f.dpi)
 
@@ -222,7 +227,7 @@ def density_frequencies_per_species_colored(tables, labels, plotname):
                      fly_barcodes.deduplicated_y,
                      cmap="Blues", shade=True, shade_lowest=False)
     ax.set_xlabel('Reads per {} barcode'.format(labels[0]))
-    ax.set_ylabel('Reads per {} barcodes'.format(labels[1]))
+    ax.set_ylabel('Reads per {} barcode'.format(labels[1]))
     ax.set_xlim(0, 700000)
     ax.set_ylim(0, 700000)
     red = sns.color_palette("Reds")[-2]
