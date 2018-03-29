@@ -165,8 +165,8 @@ def plot_barcode_frequencies(tab_file, plotname):
 
 
 def scatter_log_frequencies_per_species(tables, labels, plotname):
-    t1 = pd.read_csv(tables[0], sep='\t', index_col='file')
-    t2 = pd.read_csv(tables[1], sep='\t', index_col='file')
+    t1 = pd.read_csv(tables[0], sep='\t')
+    t2 = pd.read_csv(tables[1], sep='\t')
     for df in [t1, t2]:
         df['I1'] = df['file'].apply(lambda x: int(x.split('_')[0].split('-')[1]))
 
@@ -176,7 +176,7 @@ def scatter_log_frequencies_per_species(tables, labels, plotname):
     joined = joined[['deduplicated_x', 'deduplicated_y', 'color']]
     joined.columns = labels + ['color']
     f, ax = plt.subplots()
-    ax = joined.plot.scatter(labels[0], labels[1], ax=ax, loglog=True, alpha=.2)
+    ax = joined.plot.scatter(labels[0], labels[1], ax=ax, loglog=True, alpha=.2, color=joined.color)
     ax.set_xlabel('Reads per {} barcode'.format(labels[0]))
     ax.set_ylabel('Reads per {} barcode'.format(labels[1]))
     #ax.set_xlabel(
@@ -220,16 +220,16 @@ def density_frequencies_per_species_colored(tables, labels, plotname):
 
     fish_barcodes = joined.query("color == 'red'")
     fly_barcodes = joined.query("color == 'blue'")
-    ax = sns.kdeplot(fish_barcodes.deduplicated_x,
-                     fish_barcodes.deduplicated_y,
+    ax = sns.kdeplot(fish_barcodes[labels[0]],
+                     fish_barcodes[labels[1]],
                      cmap="Reds", shade=True, shade_lowest=False)
-    ax = sns.kdeplot(fly_barcodes.deduplicated_x,
-                     fly_barcodes.deduplicated_y,
+    ax = sns.kdeplot(fly_barcodes[labels[0]],
+                     fly_barcodes[labels[1]],
                      cmap="Blues", shade=True, shade_lowest=False)
     ax.set_xlabel('Reads per {} barcode'.format(labels[0]))
     ax.set_ylabel('Reads per {} barcode'.format(labels[1]))
-    ax.set_xlim(0, 700000)
-    ax.set_ylim(0, 700000)
+    ax.set_xlim(0, 70000)
+    ax.set_ylim(0, 70000)
     red = sns.color_palette("Reds")[-2]
     blue = sns.color_palette("Blues")[-2]
     f.savefig(plotname, dpi=f.dpi)
