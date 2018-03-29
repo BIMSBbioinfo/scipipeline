@@ -3,6 +3,8 @@ samples:
   SECOND_MATE: /scratch/AG_Ohler/Scott/sciATACtest/noSampleSheet/Undetermined_S0_R2_001.fastq.gz
 
 adapters: /data/ohler/Scott/Asli_Scripts/sciAtacAdapters.fa
+
+barcode_template: /scratch/AG_Ohler/Scott/sciATACtest/noSampleSheet/Undetermined_S0_{barcode}_001.fastq.gz
  
 barcodes:
   I1: I1

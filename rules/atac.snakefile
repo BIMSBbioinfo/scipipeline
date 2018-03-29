@@ -3,11 +3,6 @@ from os.path import join
 from utils.assemble_pseudogenome import create_pseudo_genome
 from utils.split_reads import split_reads_by_barcode
 from utils.split_reads import obtain_barcode_frequencies
-from utils.split_reads import plot_barcode_frequencies
-from utils.split_reads import species_specificity
-from utils.split_reads import scatter_log_frequencies_per_species
-from utils.split_reads import scatter_frequencies_per_species_colored
-from utils.split_reads import density_frequencies_per_species_colored
 
 # Trimmed reads
 TRIM_PATTERN = join(OUT_DIR, 'atac_reads_trimmed')
@@ -116,7 +111,7 @@ rule map_to_pseudo_genome:
     """Make bowtie2 index from pseudo genomes"""
     params: join(PSGENOME_OUTDIR, 'pseudo_genome_{barcode}')
     input: 
-        fastq = BARCODE_TEMPLATE,
+        fastq = config['barcode_template'],
         index = join(PSGENOME_OUTDIR, 'pseudo_genome_{barcode}.1.bt2')
     output: join(PSGENOME_OUTDIR, 'pseudo_genome_{barcode}.bam')
     threads: 10
@@ -176,17 +171,6 @@ rule report_barcode_frequencies:
 INPUT_ALL.append(expand(rules.report_barcode_frequencies.output, reference=config['reference']))
 
 
-# ------------------------ #
-#
-rule plot_barcode_freqs:
-    """Plot barcode frequency"""
-    input: join(OUT_DIR, "report", "barcode_frequencies.{reference}.tab")
-    output: join(OUT_DIR, "report", "barcode_frequencies_{reference}.png")
-    run:
-        plot_barcode_frequencies(input[0], output[0])
-
-INPUT_ALL.append(expand(rules.plot_barcode_freqs.output, reference=config['reference']))
-
 # ------------------------- #
 # Split the reads according to the barcodes
 # 
@@ -207,62 +191,4 @@ rule split_reads_by_index:
                               os.path.dirname(output[0]), params.max_open_files,
                               params.min_mapq, params.max_mismatches)
        
-#INPUT_ALL.append(dynamic(expand(join(SPLIT_OUTPUT_DIR, "{combar}.bam"), reference=config['reference'])))
-
-rule read_cooccurrence_by_species:
-    """How frequently do reads map uniquely to one species or to both?"""
-    input: expand(BAM_SORTED, reference=config['reference'])
-    output: expand(join(OUT_DIR, "report", "read_cooccurrence.{suffix}"), suffix=['tab', 'png'])
-    run:
-        species_specificity(input[0], input[1], output[0].split('.')[0], expand('{reference}', reference=config['reference']))
-
-INPUT_ALL.append(rules.read_cooccurrence_by_species.output)
-
-# ------------------------ #
-#
-rule scatterplot_barcode_logfreqs:
-    """Plot barcode frequency"""
-    input: 
-        tables = expand(join(OUT_DIR, "report", 
-           "barcode_frequencies.{reference}.tab"), reference=config['reference']),
-    params:
-        names = expand('{reference}', reference=config['reference'])
-
-    output: join(OUT_DIR, "report", "barcode_log_frequencies_scatter.png")
-    run:
-        scatter_log_frequencies_per_species(input.tables, params.names, output[0])
-
-INPUT_ALL.append(rules.scatterplot_barcode_logfreqs.output)
-
-# ------------------------ #
-#
-rule scatterplot_barcode_freqs:
-    """Plot barcode frequency"""
-    input: 
-        tables = expand(join(OUT_DIR, "report", 
-           "barcode_frequencies.{reference}.tab"), reference=config['reference']),
-    params:
-        names = expand('{reference}', reference=config['reference'])
-
-    output: join(OUT_DIR, "report", "barcode_frequencies_scatter.png")
-    run:
-        scatter_frequencies_per_species_colored(input.tables, params.names, output[0])
-
-INPUT_ALL.append(rules.scatterplot_barcode_freqs.output)
-
-# ------------------------ #
-#
-rule density_barcode_freqs:
-    """Plot barcode frequency"""
-    input: 
-        tables = expand(join(OUT_DIR, "report", 
-           "barcode_frequencies.{reference}.tab"), reference=config['reference']),
-    params:
-        names = expand('{reference}', reference=config['reference'])
-
-    output: join(OUT_DIR, "report", "barcode_frequencies_density.png")
-    run:
-        density_frequencies_per_species_colored(input.tables, params.names, output[0])
-
-INPUT_ALL.append(rules.density_barcode_freqs.output)
 

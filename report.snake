@@ -23,7 +23,7 @@ INPUT_ALL = []
 
 ############ BEGIN PIPELINE RULES ############
 
-include: "rules/atac.snakefile"
+include: "rules/report.snakefile"
 
 
 #### ALL ####
