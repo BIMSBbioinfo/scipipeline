@@ -1,4 +1,6 @@
 from os.path import join
+import os
+import pysam
 
 from utils.assemble_pseudogenome import create_pseudo_genome
 from utils.split_reads import split_reads_by_barcode
@@ -191,4 +193,31 @@ rule split_reads_by_index:
                               os.path.dirname(output[0]), params.max_open_files,
                               params.min_mapq, params.max_mismatches)
        
+rule merge_deduplicated_reads:
+    input: dynamic(join(SPLIT_OUTPUT_DIR + '_deduplicated', "{combar}.bam"))
+    output: join(OUT_DIR, "{reference}", "atac_merged.bam")
+    run:
+        x = range(len(input)//1000 + 1 if len(input)%1000 > 0 else 0)
+        for i in x:
+            pysam.merge('-f', "{}.{}".format(output, i), 
+                        *input[i*1000:(i+1)*1000])
+        pysam.merge('-f', output[0], *[ "{}.{}".format(output, i) for i in x])
+        for i in x:
+            os.unlink("{}.{}".format(output, i))
 
+
+INPUT_ALL.append(expand(rules.merge_deduplicated_reads.output, reference=config['reference']))
+
+rule peak_calling_on_aggregate:
+    input: join(OUT_DIR, "{reference}", "atac_merged.bam")
+    output: join(OUT_DIR, "{reference}", "macs2", 
+                 "{reference}_peaks.narrowPeak")
+    params: name='{reference}',
+            outdir = join(OUT_DIR, "{reference}", "macs2")
+    log: join(LOG_DIR, 'macs2_{reference}.log')
+    shell:
+        """
+        macs2 callpeak --name {params.name} -t {input} -f BAMPE --nomodel --outdir {params.outdir} --call-summits --gsize dm > {log}
+        """
+
+INPUT_ALL.append(expand(rules.peak_calling_on_aggregate.output, reference=config['reference']))
