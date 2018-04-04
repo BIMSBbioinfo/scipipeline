@@ -5,6 +5,7 @@ import pysam
 from utils.assemble_pseudogenome import create_pseudo_genome
 from utils.split_reads import split_reads_by_barcode
 from utils.split_reads import obtain_barcode_frequencies
+from utils.split_reads import count_reads_in_bins
 
 # Trimmed reads
 TRIM_PATTERN = join(OUT_DIR, 'atac_reads_trimmed')
@@ -158,6 +159,16 @@ rule deduplicate_split_reads:
 
 
 # ------------------------- #
+# Index the reads
+
+rule index_deduplicate_split_reads:
+    """Deduplicate split reads"""
+    input: join(SPLIT_OUTPUT_DIR + '_deduplicated', "{combar}.bam")
+    output: join(SPLIT_OUTPUT_DIR + '_deduplicated', "{combar}.bam.bai")
+    shell: "samtools index {input}"
+
+
+# ------------------------- #
 # report barcode frequencies
 
 rule report_barcode_frequencies:
@@ -209,15 +220,30 @@ rule merge_deduplicated_reads:
 INPUT_ALL.append(expand(rules.merge_deduplicated_reads.output, reference=config['reference']))
 
 rule peak_calling_on_aggregate:
+    """Peak calling on aggregated reads"""
     input: join(OUT_DIR, "{reference}", "atac_merged.bam")
-    output: join(OUT_DIR, "{reference}", "macs2", 
-                 "{reference}_peaks.narrowPeak")
-    params: name='{reference}',
-            outdir = join(OUT_DIR, "{reference}", "macs2")
+    output: join(OUT_DIR, "{reference}", "macs2", "{reference}_peaks.narrowPeak")
+    params: name='{reference}', outdir = join(OUT_DIR, "{reference}", "macs2")
     log: join(LOG_DIR, 'macs2_{reference}.log')
-    shell:
-        """
-        macs2 callpeak --name {params.name} -t {input} -f BAMPE --nomodel --outdir {params.outdir} --call-summits --gsize dm > {log}
-        """
+    shell: " macs2 callpeak --name {params.name} -t {input} -f BAMPE --nomodel --outdir {params.outdir} --call-summits --gsize dm 2> {log} "
 
 INPUT_ALL.append(expand(rules.peak_calling_on_aggregate.output, reference=config['reference']))
+
+
+
+# ------------------------- #
+# Count reads in bins 
+
+rule counting_reads_in_bins:
+    """Counting reads per barcode"""
+    input: 
+        bams = dynamic(join(SPLIT_OUTPUT_DIR + '_deduplicated', 
+                            "{combar}.bam")),
+        bai = dynamic(join(SPLIT_OUTPUT_DIR + '_deduplicated', 
+                           "{combar}.bam.bai"))
+    output: join(OUT_DIR, '{reference}', 'read_counts_{binsize}.h5')
+    run: count_reads_in_bins(input.bams, int(wildcards.binsize), output[0])
+
+
+INPUT_ALL.append(expand(rules.counting_reads_in_bins.output, reference=config['reference'], binsize=[2000, 5000, 10000]))
+

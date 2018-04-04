@@ -6,9 +6,13 @@
                    "python-numpy"
                    "python-biopython"
                    "python-pysam"
+                   "python-pybigwig"
+                   "python-py2bit"
                    "python-pandas"
                    "python-matplotlib"
                    "python-seaborn"
+                   "python-h5py"
+                   "deeptools"
                    "flexbar"))
 
 ;; Turn the list of package names into a manifest

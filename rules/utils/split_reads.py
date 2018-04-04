@@ -1,7 +1,10 @@
 import os
 import shutil
+import h5py
+import numpy as np
 from pysam import AlignmentFile
 from pysam import view
+import deeptools.countReadsPerBin as crpb
 
 
 def split_reads_by_barcode(barcode_bams, treatment_bam,
@@ -148,6 +151,34 @@ def obtain_barcode_frequencies(originals, dedup, output):
             dcnt = int(view(defile, '-c'))
             f.write("{}\t{}\t{}\n".format(os.path.basename(ofile).split('.')[0], ocnt, dcnt))
 
+
+def count_reads_in_bins(bams, binsize, storage):
+    """ This function obtains the counts per bin """
+
+    # Obtain the header information
+    afile = AlignmentFile(bams[0], 'rb')
+    genomesize = {}
+    for chrom, length in zip(afile.references, afile.lengths):
+        genomesize[chrom] = length
+    afile.close()
+
+    # number of batches
+    batches = len(bams)//1000 + 1 if len(bams)%1000 > 0 else 0
+
+    # open up a hdf5 file to dump the dataset in
+    data = h5py.File(storage, 'w')
+    for chrom in genomesize:
+        data.create_dataset(chrom, (genomesize[chrom]//binsize, len(bams)),
+                            dtype='int32', compression='lzf')
+
+    for b in range(batches):
+        cr = crpb.CountReadsPerBin(bams[b*1000:(b+1)*1000], 
+                                   binLength=binsize, 
+                                   stepSize=binsize, 
+                                   center_read=True, samFlag_exclude = 128)
+        for chrom in genomesize:
+            data[chrom][:,b*1000:(b+1)*1000] = cr.count_reads_in_region(chrom, 0, genomesize[chrom] -1)[0]
+    data.close()
 
 
 if __name__ == '__main__':
