@@ -17,7 +17,7 @@ MAPPING_RESULTS = join(OUT_DIR, '{reference}', 'atac.bam')
 BAM_SORTED = join(OUT_DIR, '{reference}', 'atac_sorted.bam')
 
 PSGENOME_OUTDIR = join(OUT_DIR, 'pseudogenome')
-SPLIT_OUTPUT_DIR = join(OUT_DIR, '{reference}', 'splitreads')
+SPLIT_OUTPUT_DIR = join(OUT_DIR, '{reference}')
 
 
 
@@ -47,8 +47,6 @@ rule adapter_trimming:
         + " --min-read-length 50 "
         + " > {log}"
 
-#INPUT_ALL.append(rules.adapter_trimming.output)
-
 # ------------------------- #
 # Mapping to the reference genome
 
@@ -68,8 +66,6 @@ rule read_mapping:
         "{output} "
 
 
-#INPUT_ALL.append(expand(rules.read_mapping.output, reference=config['reference']))
-
 # ------------------------- #
 # Sort reads by name
 
@@ -79,8 +75,6 @@ rule sort_mapping_by_name:
     output: BAM_SORTED
     shell:
         "samtools sort -n {input} -o {output}"
-
-#INPUT_ALL.append(expand(rules.sort_mapping_by_name.output, reference=config['reference']))
 
 # ------------------------- #
 # Construct a pseudo genome in fasta format
@@ -92,8 +86,6 @@ rule make_pseudo_genomes:
     run:
         create_pseudo_genome(input[0], output[0])
        
-#INPUT_ALL.append(expand(rules.make_pseudo_genomes.output, barcode=config['barcodes']))
-
 # ------------------------- #
 # Create bowtie2 index for pseudo genome
 rule make_bowtie2_index_from_pseudo_genomes:
@@ -104,8 +96,6 @@ rule make_bowtie2_index_from_pseudo_genomes:
     shell:
         "bowtie2-build {input} {params}"
         
-#INPUT_ALL.append(expand(join(PSGENOME_OUTDIR, 'pseudo_genome_{barcode}.1.bt2'), barcode=config['barcodes']))
-
 
 # ------------------------- #
 # Mapping to pseudo genome
@@ -123,8 +113,6 @@ rule map_to_pseudo_genome:
         "bowtie2 -p {threads} -x {params} -U {input.fastq} 2> {log} | samtools view -bS - >" +
         " {output} "
         
-#INPUT_ALL.append(expand(join(PSGENOME_OUTDIR, 'pseudo_genome_{barcode}.bam'), 
-                        #barcode=['I1', 'I2', 'I3', 'I4']))
 
 # ------------------------- #
 # Mapping to pseudo genome
@@ -136,16 +124,34 @@ rule sort_mapping_pseudo_genome_by_name:
     shell:
         "samtools sort -n {input} -o {output}" 
 
-#INPUT_ALL.append(expand(join(PSGENOME_OUTDIR, 'pseudo_genome_{barcode}_sorted.bam'), 
-                        #barcode=config['barcodes']))
 
+# ------------------------- #
+# Split the reads according to the barcodes
+# 
+rule split_reads_by_index:
+    """Split reads by barcodes"""
+    input:
+       barcode_alns=expand(join(PSGENOME_OUTDIR, 
+                                'pseudo_genome_{barcode}_sorted.bam'),
+                                barcode=config['barcodes']),
+       read_aln=BAM_SORTED
+    output: temp(join(SPLIT_OUTPUT_DIR, "atac_barcoded.bam"))
+    params:
+       min_mapq = 40,
+       max_mismatches = 1
+    run:
+       split_reads_by_barcode(input.barcode_alns, 
+                              input.read_aln, 
+                              output[0],
+                              params.min_mapq, params.max_mismatches)
+       
 # ------------------------- #
 # Sort the split reads
 
 rule sort_split_reads:
     """Sort split reads"""
-    input: join(SPLIT_OUTPUT_DIR, "{combar}.bam")
-    output: join(SPLIT_OUTPUT_DIR + '_sorted', "{combar}.bam")
+    input: join(SPLIT_OUTPUT_DIR, "atac_barcoded.bam")
+    output: temp(join(SPLIT_OUTPUT_DIR, "atac_barcoded_sorted.bam"))
     shell: "samtools sort {input} -o {output}"
 
 # ------------------------- #
@@ -153,8 +159,8 @@ rule sort_split_reads:
 
 rule deduplicate_split_reads:
     """Deduplicate split reads"""
-    input: join(SPLIT_OUTPUT_DIR + '_sorted', "{combar}.bam")
-    output: join(SPLIT_OUTPUT_DIR + '_deduplicated', "{combar}.bam")
+    input: join(SPLIT_OUTPUT_DIR, "atac_barcoded_sorted.bam")
+    output: join(SPLIT_OUTPUT_DIR, "atac_barcoded_dedup.bam")
     shell: "samtools rmdup {input} {output}"
 
 
@@ -174,61 +180,25 @@ rule index_deduplicate_split_reads:
 rule report_barcode_frequencies:
     """Report barcode frequencies"""
     input: 
-        original = dynamic(join(SPLIT_OUTPUT_DIR, "{combar}.bam")),
+        original = join(SPLIT_OUTPUT_DIR, "atac_barcode_dedup.bam")),
         deduplicated = dynamic(join(SPLIT_OUTPUT_DIR + '_deduplicated', "{combar}.bam"))
     output:
         join(OUT_DIR, "report", "barcode_frequencies.{reference}.tab")
     run:
         obtain_barcode_frequencies(input.original, input.deduplicated, output[0])
         
-INPUT_ALL.append(expand(rules.report_barcode_frequencies.output, reference=config['reference']))
+#INPUT_ALL.append(expand(rules.report_barcode_frequencies.output, reference=config['reference']))
 
-
-# ------------------------- #
-# Split the reads according to the barcodes
-# 
-rule split_reads_by_index:
-    """Split reads by barcodes"""
-    input:
-       barcode_alns=expand(join(PSGENOME_OUTDIR, 'pseudo_genome_{barcode}_sorted.bam'),
-                        barcode=config['barcodes']),
-       read_aln=BAM_SORTED
-    output: dynamic(join(SPLIT_OUTPUT_DIR, "{combar}.bam"))
-    params:
-       max_open_files = 1000,
-       min_mapq = 40,
-       max_mismatches = 1
-    run:
-       split_reads_by_barcode(input.barcode_alns, 
-                              input.read_aln, 
-                              os.path.dirname(output[0]), params.max_open_files,
-                              params.min_mapq, params.max_mismatches)
-       
-rule merge_deduplicated_reads:
-    input: dynamic(join(SPLIT_OUTPUT_DIR + '_deduplicated', "{combar}.bam"))
-    output: join(OUT_DIR, "{reference}", "atac_merged.bam")
-    run:
-        x = range(len(input)//1000 + 1 if len(input)%1000 > 0 else 0)
-        for i in x:
-            pysam.merge('-f', "{}.{}".format(output, i), 
-                        *input[i*1000:(i+1)*1000])
-        pysam.merge('-f', output[0], *[ "{}.{}".format(output, i) for i in x])
-        for i in x:
-            os.unlink("{}.{}".format(output, i))
-
-
-INPUT_ALL.append(expand(rules.merge_deduplicated_reads.output, reference=config['reference']))
 
 rule peak_calling_on_aggregate:
-    """Peak calling on aggregated reads"""
-    input: join(OUT_DIR, "{reference}", "atac_merged.bam")
+    input: join(OUT_DIR, "{reference}", "atac_barcode_dedup.bam")
     output: join(OUT_DIR, "{reference}", "macs2", "{reference}_peaks.narrowPeak")
-    params: name='{reference}', outdir = join(OUT_DIR, "{reference}", "macs2")
+    params: name='{reference}',
+            outdir = join(OUT_DIR, "{reference}", "macs2")
     log: join(LOG_DIR, 'macs2_{reference}.log')
     shell: " macs2 callpeak --name {params.name} -t {input} -f BAMPE --nomodel --outdir {params.outdir} --call-summits --gsize dm 2> {log} "
 
 INPUT_ALL.append(expand(rules.peak_calling_on_aggregate.output, reference=config['reference']))
-
 
 
 # ------------------------- #
