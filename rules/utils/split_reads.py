@@ -1,10 +1,9 @@
 import os
-import shutil
 import h5py
 import numpy as np
 from pysam import AlignmentFile
 from pysam import view
-import deeptools.countReadsPerBin as crpb
+from collections import defaultdict
 
 
 def split_reads_by_barcode(barcode_bams, treatment_bam,
@@ -50,7 +49,7 @@ def split_reads_by_barcode(barcode_bams, treatment_bam,
     barcode_it = [reader.fetch(until_eof=True)
                   for reader in barcode_readers]
     bnames = [next(br) for br in barcode_it]
-    bam_writer = AlignmentFile(output_bam, 'wb', template=treatment_reader)
+    bam_writer = AlignmentFile(output_bam + '.tmp', 'wb', template=treatment_reader)
 
     barcodes = set()
 
@@ -89,56 +88,56 @@ def split_reads_by_barcode(barcode_bams, treatment_bam,
         bam_writer.write(aln)
 
     print("End batch ...")
-    bam_writer.header['RG'] = ['ID': combid for combid in barcodes]
 
     treatment_reader.close()
     bam_writer.close()
     for reader in barcode_readers:
         reader.close()
 
+    f = AlignmentFile(output_bam + '.tmp', 'rb')
+    header = f.header
+    header['RG'] = [{'ID': combid} for combid in barcodes]
+    bam_writer = AlignmentFile(output_bam, 'wb', header=header)
+    for aln in f.fetch(until_eof=True):
+        bam_writer.write(aln)
 
-def obtain_barcode_frequencies(originals, dedup, output):
-
-    with open(output, 'w') as f:
-        f.write("file\toriginal\tdeduplicated\n")
-        for ofile, defile in zip(originals, dedup):
-            ocnt = int(view(ofile, '-c'))
-            dcnt = int(view(defile, '-c'))
-            f.write("{}\t{}\t{}\n".format(os.path.basename(ofile).split('.')[0], ocnt, dcnt))
-
-
-def count_reads_in_bins(bams, binsize, storage):
-    """ This function obtains the counts per bin """
-
-    # Obtain the header information
-    afile = AlignmentFile(bams[0], 'rb')
-    genomesize = {}
-    for chrom, length in zip(afile.references, afile.lengths):
-        genomesize[chrom] = length
-    afile.close()
-
-    # number of batches
-    batches = len(bams)//1000 + 1 if len(bams)%1000 > 0 else 0
-
-    # open up a hdf5 file to dump the dataset in
-    data = h5py.File(storage, 'w')
-    for chrom in genomesize:
-        data.create_dataset(chrom, (genomesize[chrom]//binsize, len(bams)),
-                            dtype='int32', compression='lzf')
-
-    for b in range(batches):
-        cr = crpb.CountReadsPerBin(bams[b*1000:(b+1)*1000], 
-                                   binLength=binsize, 
-                                   stepSize=binsize, 
-                                   center_read=True, samFlag_exclude = 128)
-        for chrom in genomesize:
-            data[chrom][:,b*1000:(b+1)*1000] = cr.count_reads_in_region(chrom, 0, genomesize[chrom] -1)[0]
-    data.close()
+    f.close()
+    os.remove(output_bam + '.tmp')
+    bam_writer.close()
 
 
+def deduplicate_reads_by_barcode(bamin, bamout):
+    """This script deduplicates the original bamfile.
+    
+    It assumes the original bamfile to be sorted according
+    to genomic positions. Furthermore, each read must be augmented
+    by a corresponding RG tag indicating the barcode.
+
+    Parameters
+    ----------
+    bamfile : str
+        Sorted bamfile containing barcoded reads.
+    output : str
+        Output path to a bamfile that contains the deduplicated reads.
+    """
+    bamfile = AlignmentFile(bamin, 'rb')
+    output = AlignmentFile(bamout, 'wb', template=bamfile)
+
+    # grep all barcodes from the header
+    barcodes = defaultdict(lambda: 0)
+    
+    for aln in bamfile.fetch(until_eof=True): 
+        # if previous hash matches the current has
+        # skip the read
+        if barcodes[aln.get_tag('RG')] == hash((aln.query_name, aln.pos, aln.flag, aln.tlen)):
+            continue
+        else:
+            barcodes[aln.get_tag('RG')] = hash((aln.query_name, aln.pos, aln.flag, aln.tlen))
+            output.write(aln)
+    
 if __name__ == '__main__':
     barcode_bams = ['pseudo_genome_I{}_sorted.bam'.format(i) for i in [1,2,3,4]]
     treatment_bam = 'test.input.bam'
     output_dir = 'test_split'
     max_open_files=1000
-    split_reads_by_barcode(barcode_bams, treatment_bam, output_dir, max_open_files)
+    split_reads_by_barcode(barcode_bams, treatment_bam, output_dir)

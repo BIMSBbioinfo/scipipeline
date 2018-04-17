@@ -4,8 +4,9 @@ import pysam
 
 from utils.assemble_pseudogenome import create_pseudo_genome
 from utils.split_reads import split_reads_by_barcode
-from utils.split_reads import obtain_barcode_frequencies
-from utils.split_reads import count_reads_in_bins
+from utils.split_reads import deduplicate_reads_by_barcode
+from utils.count_matrix import count_reads_in_bins
+from utils.count_matrix import count_reads_in_regions
 
 # Trimmed reads
 TRIM_PATTERN = join(OUT_DIR, 'atac_reads_trimmed')
@@ -17,7 +18,6 @@ MAPPING_RESULTS = join(OUT_DIR, '{reference}', 'atac.bam')
 BAM_SORTED = join(OUT_DIR, '{reference}', 'atac_sorted.bam')
 
 PSGENOME_OUTDIR = join(OUT_DIR, 'pseudogenome')
-SPLIT_OUTPUT_DIR = join(OUT_DIR, '{reference}')
 
 
 
@@ -135,7 +135,7 @@ rule split_reads_by_index:
                                 'pseudo_genome_{barcode}_sorted.bam'),
                                 barcode=config['barcodes']),
        read_aln=BAM_SORTED
-    output: temp(join(SPLIT_OUTPUT_DIR, "atac_barcoded.bam"))
+    output: join(OUT_DIR, "{reference}", "atac_barcoded.bam")
     params:
        min_mapq = 40,
        max_mismatches = 1
@@ -145,13 +145,14 @@ rule split_reads_by_index:
                               output[0],
                               params.min_mapq, params.max_mismatches)
        
+#INPUT_ALL.append(expand(rules.split_reads_by_index.output, reference=config['reference']))
 # ------------------------- #
 # Sort the split reads
 
 rule sort_split_reads:
     """Sort split reads"""
-    input: join(SPLIT_OUTPUT_DIR, "atac_barcoded.bam")
-    output: temp(join(SPLIT_OUTPUT_DIR, "atac_barcoded_sorted.bam"))
+    input: join(OUT_DIR, "{reference}", "atac_barcoded.bam")
+    output: join(OUT_DIR, "{reference}", "atac_barcoded_sorted.bam")
     shell: "samtools sort {input} -o {output}"
 
 # ------------------------- #
@@ -159,40 +160,39 @@ rule sort_split_reads:
 
 rule deduplicate_split_reads:
     """Deduplicate split reads"""
-    input: join(SPLIT_OUTPUT_DIR, "atac_barcoded_sorted.bam")
-    output: join(SPLIT_OUTPUT_DIR, "atac_barcoded_dedup.bam")
+    input: join(OUT_DIR, "{reference}", "atac_barcoded_sorted.bam")
+    output: join(OUT_DIR, "{reference}", "atac_barcode_dedup.bam")
     shell: "samtools rmdup {input} {output}"
 
+
+# ------------------------- #
+# Deduplicate the split reads by barcode
+
+rule deduplicate_split_reads_by_barcode:
+    """Deduplicate split reads"""
+    input: join(OUT_DIR, "{reference}", "atac_barcoded_sorted.bam")
+    output: join(OUT_DIR, "{reference}", "atac_barcode_dedup_by_barcode.bam")
+    run:
+        deduplicate_reads_by_barcode(input[0], output[0])
+
+INPUT_ALL.append(expand(rules.deduplicate_split_reads_by_barcode.output, reference=config['reference']))
 
 # ------------------------- #
 # Index the reads
 
 rule index_deduplicate_split_reads:
     """Deduplicate split reads"""
-    input: join(SPLIT_OUTPUT_DIR + '_deduplicated', "{combar}.bam")
-    output: join(SPLIT_OUTPUT_DIR + '_deduplicated', "{combar}.bam.bai")
+    input: join(OUT_DIR, "{reference}", "atac_barcode_dedup.bam")
+    output: join(OUT_DIR, "{reference}", "atac_barcode_dedup.bam.bai")
     shell: "samtools index {input}"
 
 
 # ------------------------- #
 # report barcode frequencies
 
-rule report_barcode_frequencies:
-    """Report barcode frequencies"""
-    input: 
-        original = join(SPLIT_OUTPUT_DIR, "atac_barcode_dedup.bam")),
-        deduplicated = dynamic(join(SPLIT_OUTPUT_DIR + '_deduplicated', "{combar}.bam"))
-    output:
-        join(OUT_DIR, "report", "barcode_frequencies.{reference}.tab")
-    run:
-        obtain_barcode_frequencies(input.original, input.deduplicated, output[0])
-        
-#INPUT_ALL.append(expand(rules.report_barcode_frequencies.output, reference=config['reference']))
-
-
 rule peak_calling_on_aggregate:
     input: join(OUT_DIR, "{reference}", "atac_barcode_dedup.bam")
-    output: join(OUT_DIR, "{reference}", "macs2", "{reference}_peaks.narrowPeak")
+    output: join(OUT_DIR, "{reference}", "macs2", "{reference}_peaks.narrowPeak"), join(OUT_DIR, "{reference}", "macs2", "{reference}_summits.bed")
     params: name='{reference}',
             outdir = join(OUT_DIR, "{reference}", "macs2")
     log: join(LOG_DIR, 'macs2_{reference}.log')
@@ -207,13 +207,28 @@ INPUT_ALL.append(expand(rules.peak_calling_on_aggregate.output, reference=config
 rule counting_reads_in_bins:
     """Counting reads per barcode"""
     input: 
-        bams = dynamic(join(SPLIT_OUTPUT_DIR + '_deduplicated', 
-                            "{combar}.bam")),
-        bai = dynamic(join(SPLIT_OUTPUT_DIR + '_deduplicated', 
-                           "{combar}.bam.bai"))
-    output: join(OUT_DIR, '{reference}', 'read_counts_{binsize}.h5')
+        bams = join(OUT_DIR, "{reference}", "atac_barcode_dedup.bam"),
+        bai = join(OUT_DIR, "{reference}", "atac_barcode_dedup.bam.bai")
+    output: join(OUT_DIR, '{reference}', 'bin_counts_{binsize}.h5')
     run: count_reads_in_bins(input.bams, int(wildcards.binsize), output[0])
 
 
 INPUT_ALL.append(expand(rules.counting_reads_in_bins.output, reference=config['reference'], binsize=[2000, 5000, 10000]))
+
+# ------------------------- #
+# Count reads in regions
+
+rule counting_reads_in_regions:
+    """Counting reads per barcode"""
+    input: 
+        bams = join(OUT_DIR, "{reference}", "atac_barcode_dedup.bam"),
+        bai = join(OUT_DIR, "{reference}", "atac_barcode_dedup.bam.bai"),
+        regions = join(OUT_DIR, "{reference}", "macs2", "{reference}_summits.bed")
+    output: join(OUT_DIR, '{reference}', 'region_counts.h5')
+    params: flank=250
+    run: count_reads_in_regions(input.bams, input.regions, \
+         output[0], flank=params.flank)
+
+
+INPUT_ALL.append(expand(rules.counting_reads_in_regions.output, reference=config['reference']))
 
