@@ -12,6 +12,7 @@
                    "python-matplotlib"
                    "python-seaborn"
                    "python-h5py"
+                   "htseq"
                    "deeptools"
                    "flexbar"))
 
