@@ -175,7 +175,7 @@ def count_reads_in_regions(bamfile, regions, storage, flank=0):
                         barcodes[aln.get_tag('RG') if use_group else 'dummy']] += 1
 
     afile.close()
-    data.close()
+    f.close()
 
 
 if __name__ == '__main__':
