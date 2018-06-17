@@ -1,20 +1,37 @@
-samples:
-  FIRST_MATE: /scratch/AG_Ohler/Scott/sciATACtest/noSampleSheet/Undetermined_S0_R1_001.fastq.gz
-  SECOND_MATE: /scratch/AG_Ohler/Scott/sciATACtest/noSampleSheet/Undetermined_S0_R2_001.fastq.gz
+ame: scATAC
 
+# all samples must be either paired-end or single-end
+pairedend: True
+
+# one or more samples
+samples:
+  atac:
+    read1: /scratch/AG_Ohler/Scott/sciATACtest/noSampleSheet/Undetermined_S0_R1_001.fastq.gz
+    read2: /scratch/AG_Ohler/Scott/sciATACtest/noSampleSheet/Undetermined_S0_R2_001.fastq.gz
+
+# adapters to eliminate with flexbar
 adapters: /data/ohler/Scott/Asli_Scripts/sciAtacAdapters.fa
 
-barcode_template: /scratch/AG_Ohler/Scott/sciATACtest/noSampleSheet/Undetermined_S0_{barcode}_001.fastq.gz
- 
+# barcode reads and references contain the UMIs
 barcodes:
-  I1: I1
-  I2: I2
-  I3: I3
-  I4: I4
+  I1: 
+    reads: /scratch/AG_Ohler/Scott/sciATACtest/noSampleSheet/Undetermined_S0_I1_001.fastq.gz
+    reference: meta/I1.tab # can also be a fasta file containing the barcodes
+  I2: 
+    reads: /scratch/AG_Ohler/Scott/sciATACtest/noSampleSheet/Undetermined_S0_I2_001.fastq.gz
+    reference: meta/I2.tab # can also be a fasta file containing the barcodes
+  I3: 
+    reads: /scratch/AG_Ohler/Scott/sciATACtest/noSampleSheet/Undetermined_S0_I3_001.fastq.gz
+    reference: meta/I3.tab # can also be a fasta file containing the barcodes
+  I4: /scratch/AG_Ohler/Scott/sciATACtest/noSampleSheet/Undetermined_S0_I4_001.fastq.gz
+    reads: /scratch/AG_Ohler/Scott/sciATACtest/noSampleSheet/Undetermined_S0_I4_001.fastq.gz
+    reference: meta/I4.tab # can also be a fasta file containing the barcodes
 
+# reference genomes to map against
+# the paths should point to the respective bowtie2 indices
 reference:
   dm6: /data/akalin/wkopp/bowtie2_indices/
   danrer10: /data/akalin/wkopp/bowtie2_indices/
 
-
+# output directory
 output_dir: /data/akalin/wkopp/sciatac_data/
