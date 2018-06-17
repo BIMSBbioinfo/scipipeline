@@ -83,7 +83,7 @@ def split_reads_by_barcode(barcode_bams, treatment_bam,
 
         comb_id = '_'.join([baln.reference_name for baln in bnames])
         barcodes.add(comb_id)
-        
+
         aln.set_tag('RG', comb_id)
         bam_writer.write(aln)
 
@@ -106,12 +106,12 @@ def split_reads_by_barcode(barcode_bams, treatment_bam,
     bam_writer.close()
 
 
-def deduplicate_reads_by_barcode(bamin, bamout):
+def deduplicate_reads(bamin, bamout, by_rg=True):
     """This script deduplicates the original bamfile.
-    
-    It assumes the original bamfile to be sorted according
-    to genomic positions. Furthermore, each read must be augmented
-    by a corresponding RG tag indicating the barcode.
+
+    Deduplication removes reads align to the same position.
+    If the reads in the bamfile contain a RG tag and
+    by_rg=True, deduplication is done for each group separately.
 
     Parameters
     ----------
@@ -119,25 +119,30 @@ def deduplicate_reads_by_barcode(bamin, bamout):
         Sorted bamfile containing barcoded reads.
     output : str
         Output path to a bamfile that contains the deduplicated reads.
+    by_rg : boolean
+        If True, the reads will be split by group tag.
     """
     bamfile = AlignmentFile(bamin, 'rb')
     output = AlignmentFile(bamout, 'wb', template=bamfile)
 
     # grep all barcodes from the header
-    barcodes = defaultdict(lambda: 0)
-    
-    for aln in bamfile.fetch(until_eof=True): 
+    barcodes = set()
+
+    for aln in bamfile.fetch(until_eof=True):
         # if previous hash matches the current has
         # skip the read
-        if barcodes[aln.get_tag('RG')] == hash((aln.query_name, aln.pos, aln.flag, aln.tlen)):
-            continue
+        if not aln.has_tag('RG') or not by_rg:
+            val = (aln.reference_name, aln.reference_start,
+                   aln.is_reverse, aln.tlen, aln.get_tag('RG')):
         else:
-            barcodes[aln.get_tag('RG')] = hash((aln.query_name, aln.pos, aln.flag, aln.tlen))
+            val = (aln.reference_name, aln.reference_start,
+                   aln.is_reverse, aln.tlen):
+        if val not in barcodes:
+            barcodes.add(val)
             output.write(aln)
-    
+
 if __name__ == '__main__':
     barcode_bams = ['pseudo_genome_I{}_sorted.bam'.format(i) for i in [1,2,3,4]]
     treatment_bam = 'test.input.bam'
     output_dir = 'test_split'
-    max_open_files=1000
     split_reads_by_barcode(barcode_bams, treatment_bam, output_dir)
