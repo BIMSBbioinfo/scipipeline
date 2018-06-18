@@ -133,10 +133,10 @@ def deduplicate_reads(bamin, bamout, by_rg=True):
         # skip the read
         if not aln.has_tag('RG') or not by_rg:
             val = (aln.reference_name, aln.reference_start,
-                   aln.is_reverse, aln.tlen, aln.get_tag('RG')):
+                   aln.is_reverse, aln.tlen, aln.get_tag('RG'))
         else:
             val = (aln.reference_name, aln.reference_start,
-                   aln.is_reverse, aln.tlen):
+                   aln.is_reverse, aln.tlen)
         if val not in barcodes:
             barcodes.add(val)
             output.write(aln)
