@@ -56,7 +56,7 @@ if config['pairedend']:
             first=FIRST_MATE_TRIMMED, 
             second=SECOND_MATE_TRIMMED
         output: MAPPING_RESULTS
-        params: '/data/akalin/wkopp/bowtie2_indices/{reference}/{reference}'
+        params: lambda wildcards: config['reference'][wildcards.reference]
         threads: 20
         log: join(LOG_DIR, '{sample}_{reference}_bowtie2.log')
         wildcard_constraints:
@@ -256,13 +256,13 @@ rule counting_reads_in_bins:
 
 INPUT_ALL.append(expand(rules.counting_reads_in_bins.output, 
                         reference=config['reference'], 
-                        binsize=[2000, 5000, 10000], 
+                        binsize=config['binsize'], 
                         sample=config['samples'].keys()))
 
 # ------------------------- #
 # Count reads in regions
 
-rule counting_reads_in_regions:
+rule counting_reads_in_peaks:
     """Counting reads per barcode"""
     input: 
         bams = join(OUT_DIR, "{reference}", "{sample}.barcoded.dedup.bam"),
@@ -274,5 +274,5 @@ rule counting_reads_in_regions:
          output[0], flank=params.flank)
 
 
-INPUT_ALL.append(expand(rules.counting_reads_in_regions.output, reference=config['reference'], sample=config['samples'].keys()))
+INPUT_ALL.append(expand(rules.counting_reads_in_peaks.output, reference=config['reference'], sample=config['samples'].keys()))
 

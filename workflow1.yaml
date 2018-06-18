@@ -30,8 +30,14 @@ barcodes:
 # reference genomes to map against
 # the paths should point to the respective bowtie2 indices
 reference:
-  dm6: /data/akalin/wkopp/bowtie2_indices/
-  danrer10: /data/akalin/wkopp/bowtie2_indices/
+  dm6: /data/akalin/wkopp/bowtie2_indices/dm6/dm6
+  danrer10: /data/akalin/wkopp/bowtie2_indices/danrer10/danrer10
+
+binsize:
+  - 1000
+  - 2000
+  - 5000
+  - 10000
 
 # output directory
 output_dir: /data/akalin/wkopp/sciatac_data/
