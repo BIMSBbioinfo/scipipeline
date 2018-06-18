@@ -5,8 +5,8 @@ import pysam
 from utils.assemble_pseudogenome import create_pseudo_genome
 from utils.split_reads import split_reads_by_barcode
 from utils.split_reads import deduplicate_reads_by_barcode
-from utils.count_matrix import count_reads_in_bins
-from utils.count_matrix import count_reads_in_regions
+from utils.count_matrix import sparse_count_reads_in_bins
+from utils.count_matrix import sparse_count_reads_in_regions
 
 # Trimmed reads
 TRIM_PATTERN = join(OUT_DIR, 'atac_reads_trimmed')
@@ -210,7 +210,8 @@ rule counting_reads_in_bins:
         bams = join(OUT_DIR, "{reference}", "atac_barcode_dedup.bam"),
         bai = join(OUT_DIR, "{reference}", "atac_barcode_dedup.bam.bai")
     output: join(OUT_DIR, '{reference}', 'bin_counts_{binsize}.h5')
-    run: count_reads_in_bins(input.bams, int(wildcards.binsize), output[0])
+    log: join(LOG_DIR, 'count.bins{binsize}.{reference}.log')
+    run: sparse_count_reads_in_bins(input.bams, int(wildcards.binsize), output[0])
 
 
 INPUT_ALL.append(expand(rules.counting_reads_in_bins.output, reference=config['reference'], binsize=[2000, 5000, 10000]))
@@ -226,7 +227,8 @@ rule counting_reads_in_regions:
         regions = join(OUT_DIR, "{reference}", "macs2", "{reference}_summits.bed")
     output: join(OUT_DIR, '{reference}', 'region_counts.h5')
     params: flank=250
-    run: count_reads_in_regions(input.bams, input.regions, \
+    log: join(LOG_DIR, 'count.region.{reference}.log')
+    run: sparse_count_reads_in_regions(input.bams, input.regions, \
          output[0], flank=params.flank)
 
 
