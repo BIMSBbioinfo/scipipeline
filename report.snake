@@ -13,7 +13,7 @@ import numpy as np
 
 configfile: 'workflow1.yaml'
 
-RUN_NAME = "sciATAC"
+RUN_NAME = config['name']
 OUT_DIR = config['output_dir']
 LOG_DIR = os.path.join(OUT_DIR, "logs")
 

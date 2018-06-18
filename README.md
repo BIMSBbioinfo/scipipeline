@@ -3,6 +3,26 @@
 This repository contains code for analysing single-cell ATAC-seq dataset
 based on a combinatorial indexing approach.
 
+## What the pipeline produces
+
+The pipeline takes as input 
+1. single- or paired-end reads 
+
+...for one or more samples in fastq format, 
+2. one or more barcode sequences in fastq format
+3. one or more reference genomes to map against
+4. adapter in fasta format to trim the reads
+5. reference barcodes to correct the sequenced barcodes
+
+The pipeline performs
+* reads mapping
+* barcode correction using the reference
+* read splitting by barcode
+* deduplication of alignments by barcode
+* peak calling on the aggregated reads across barcodes
+* produces a count matrix: peaks by cells and bins by cells
+ bins by cells allows to bin the genome in equally long windows.
+* visualization
 ## Setup the environment
 We assume that the project root directory is located at `$PRJ_DIR`.
 
