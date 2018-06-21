@@ -8,10 +8,10 @@ based on a combinatorial indexing approach.
 The pipeline takes as input 
 
 1. single- or paired-end reads for one or more samples in fastq format.
-1a. one or more reference genomes to map reads against
-1b. adapter sequences in fasta format to trim the reads
+   1. one or more reference genomes to map reads against
+   2. adapter sequences in fasta format to trim the reads
 2. one or more sets of barcode/UMI reads in fastq format
-2b. reference barcodes to correct the sequenced barcodes as table or fasta file.
+   1. reference barcodes to correct the sequenced barcodes as table or fasta file.
 
 The pipeline performs
 * reads mapping
