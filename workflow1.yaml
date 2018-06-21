@@ -33,6 +33,7 @@ reference:
   dm6: /data/akalin/wkopp/bowtie2_indices/dm6/dm6
   danrer10: /data/akalin/wkopp/bowtie2_indices/danrer10/danrer10
 
+# binsizes to bin the reference genome
 binsize:
   - 1000
   - 2000
