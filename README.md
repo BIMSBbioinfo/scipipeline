@@ -3,7 +3,7 @@
 This repository contains code for analysing single-cell ATAC-seq dataset
 based on a combinatorial indexing approach.
 
-## What the pipeline produces
+## Inputs to the pipeline
 
 The pipeline takes as input 
 
@@ -13,6 +13,8 @@ The pipeline takes as input
 2. one or more sets of barcode/UMI reads in fastq format
    1. reference barcodes to correct the sequenced barcodes as table or fasta file.
 
+## What the pipeline produces
+
 The pipeline performs
 * reads mapping
 * barcode correction using the reference barcodes
@@ -21,11 +23,17 @@ The pipeline performs
 * peak calling on the aggregated reads across barcodes
 * computation of count matrices: peaks by cells and bins by cells bins by cells allows to bin the genome in equally long windows.
 
+## Configure the pipeline
+
+The pipeline's input files and configuration can be adjusted
+by editing the workflowconfig.yaml file in the repository root.
 
 ## Setup the environment
-We assume that the project root directory is located at `$PRJ_DIR`.
+We assume that the project root directory is located at `$PRJ_DIR`
+which can be the root of the repository for example.
 
-The environment is managed by guix.
+The necessary environment and tools to run the pipeline are defined
+in guixr.manifest which is managed by guix.
 To instantiate the environment the first time, run:
 
 `guixr package --manifest=guixr.manifest --profile=$PRJ_DIR/.guix_profile`
