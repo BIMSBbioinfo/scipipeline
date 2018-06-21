@@ -6,23 +6,22 @@ based on a combinatorial indexing approach.
 ## What the pipeline produces
 
 The pipeline takes as input 
-1. single- or paired-end reads 
 
-...for one or more samples in fastq format, 
-2. one or more barcode sequences in fastq format
-3. one or more reference genomes to map against
-4. adapter in fasta format to trim the reads
-5. reference barcodes to correct the sequenced barcodes
+1. single- or paired-end reads for one or more samples in fastq format.
+1a. one or more reference genomes to map reads against
+1b. adapter sequences in fasta format to trim the reads
+2. one or more sets of barcode/UMI reads in fastq format
+2b. reference barcodes to correct the sequenced barcodes as table or fasta file.
 
 The pipeline performs
 * reads mapping
-* barcode correction using the reference
+* barcode correction using the reference barcodes
 * read splitting by barcode
 * deduplication of alignments by barcode
 * peak calling on the aggregated reads across barcodes
-* produces a count matrix: peaks by cells and bins by cells
- bins by cells allows to bin the genome in equally long windows.
-* visualization
+* computation of count matrices: peaks by cells and bins by cells bins by cells allows to bin the genome in equally long windows.
+
+
 ## Setup the environment
 We assume that the project root directory is located at `$PRJ_DIR`.
 
