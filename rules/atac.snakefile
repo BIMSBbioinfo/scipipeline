@@ -231,12 +231,13 @@ rule index_deduplicate_split_reads:
 rule peak_calling_on_aggregate:
     input: join(OUT_DIR, "{reference}", "{sample}.barcoded.dedup.bam")
     output: join(OUT_DIR, "{reference}", "macs2", "{sample}_peaks.narrowPeak"), join(OUT_DIR, "{reference}", "macs2", "{sample}_summits.bed")
-    params: name='{reference}',
+    params: name='{sample}',
             outdir = join(OUT_DIR, "{reference}", "macs2")
+            foption = 'BAMPE' if config['pairedend'] else 'BAM'
     log: join(LOG_DIR, 'macs2_{sample}.log')
     shell: 
       " macs2 callpeak --name {params.name} -t {input} -f " +
-      "BAM" + "PE" if config['pairedend'] else "" +
+      "{params.foption}" +
       " --nomodel --outdir {params.outdir} --call-summits --gsize dm 2> {log} "
 
 INPUT_ALL.append(expand(rules.peak_calling_on_aggregate.output, reference=config['reference'], sample=config['samples'].keys()))
