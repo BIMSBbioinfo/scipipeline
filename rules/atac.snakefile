@@ -232,7 +232,7 @@ rule peak_calling_on_aggregate:
     input: join(OUT_DIR, "{reference}", "{sample}.barcoded.dedup.bam")
     output: join(OUT_DIR, "{reference}", "macs2", "{sample}_peaks.narrowPeak"), join(OUT_DIR, "{reference}", "macs2", "{sample}_summits.bed")
     params: name='{sample}',
-            outdir = join(OUT_DIR, "{reference}", "macs2")
+            outdir = join(OUT_DIR, "{reference}", "macs2"),
             foption = 'BAMPE' if config['pairedend'] else 'BAM'
     log: join(LOG_DIR, 'macs2_{sample}.log')
     shell: 
