@@ -266,7 +266,7 @@ rule peak_calling_on_aggregate:
     params: name='{sample}',
             outdir = join(OUT_DIR, "{reference}", "macs2"),
             foption = lambda wc: 'BAMPE' if is_paired(wc) else 'BAM',
-            gsize = lambda wc: config['references'][wc.reference]['macs_gsize']
+            gsize = lambda wc: config['reference'][wc.reference]['macs_gsize']
     log: join(LOG_DIR, 'macs2_{sample}.log')
     shell:
       " macs2 callpeak --name {params.name} -t {input} -f " +
