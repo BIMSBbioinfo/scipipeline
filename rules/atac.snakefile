@@ -84,7 +84,7 @@ rule adapter_trimming:
         if 'adapters' in config['adapters']:
             cmd += ' -a {}'.format(config['adapters'])
         cmd += " -f i1.8 -u 10 -ae RIGHT -at 1.0 --threads {threads} "
-        cmd += " --min-read-length 50  > {log} "
+        cmd += " --min-read-length 50  > {log} && "
         if params.paired:
             cmd += " ln -s {params.target}_1.fastq {params.target}.fastq; "
         else:
