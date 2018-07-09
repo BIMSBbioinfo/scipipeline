@@ -1,14 +1,13 @@
 name: scATAC
 
-# all samples must be either paired-end or single-end
-pairedend: True
-
 # one or more samples
 samples:
   atac:
     read1: /scratch/AG_Ohler/Scott/sciATACtest/noSampleSheet/Undetermined_S0_R1_001.fastq.gz
     read2: /scratch/AG_Ohler/Scott/sciATACtest/noSampleSheet/Undetermined_S0_R2_001.fastq.gz
 
+# Specify whether the reads should be trimmmed
+trim_reads: True
 # adapters to eliminate with flexbar
 adapters: /data/ohler/Scott/Asli_Scripts/sciAtacAdapters.fa
 

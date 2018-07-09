@@ -23,89 +23,101 @@ PSGENOME_OUTDIR = join(OUT_DIR, 'barcodes')
 # next processing phase. Otherwise, matching
 # the reads with the barcodes becomes a hassle
 
+# ------------------------- #
+# Adapter trimming
+#
+# Note: We set the -u parameter to 200
+# to ensure that all reads are forwarded to the 
+# next processing phase. Otherwise, matching
+# the reads with the barcodes becomes a hassle
+
 # Trimmed reads
-TRIM_PATTERN = join(OUT_DIR, '{wildcards.sample}_trimmed')
+TRIM_PATTERN = join(OUT_DIR, '{sample}_trimmed')
 
-if config['pairedend']:
-    FIRST_MATE_TRIMMED = join(OUT_DIR, '{sample}_trimmed_1.fastq')
-    SECOND_MATE_TRIMMED = join(OUT_DIR, '{sample}_trimmed_2.fastq')
+def get_trim_inputs(wildcards):
+    samples = config['samples'][wildcards.sample]
+    return [samples[x] for x in samples]
+    
 
-    rule adapter_trimming:
-        """Trim adapters using flexbar"""
-        input: 
-            first=lambda wildcards: config['samples'][wildcards.sample]['read1'], 
-            second=lambda wildcards: config['samples'][wildcards.sample]['read2'], 
-            adapters=config['adapters']
-        output: [FIRST_MATE_TRIMMED, SECOND_MATE_TRIMMED]
-        threads: 40
-        log: join(LOG_DIR, 'flexbar_{sample}.log')
-        shell:
-            "flexbar "
-	    + "-r {input.first} -p {input.second} -t "+TRIM_PATTERN
-            + " -a {input.adapters} "
-            + " -f i1.8 -u 10 -ae RIGHT -at 1.0 --threads {threads} "
-            + " --min-read-length 50 "
-            + " > {log}"
+def get_mapping_inputs(wildcards):
+    samples = config['samples'][wildcards.sample]
+    if not config['trim_reads']:
+        # trimming is not required.
+        # the raw reads will be passed to the mapper
+        # directly
+        return [samples[x] for x in samples]
+    
+    prefix = join(OUT_DIR, wildcards.sample + '_trimmed')
+    
+    if 'read2' in samples:
+        return [prefix + '_1.fastq', prefix + '_2.fastq']
+    else:
+        return [prefix + '.fastq']
+    
+def is_paired(wildcards):
+    if 'read2' in config['samples'][wildcards.sample]:
+        return True
+    else:
+        return False
 
-    # ------------------------- #
-    # Mapping to the reference genome
-
-    rule read_mapping:
-        "Maps reads against reference genome"
-        input: 
-            first=FIRST_MATE_TRIMMED, 
-            second=SECOND_MATE_TRIMMED
-        output: MAPPING_RESULTS
-        params: lambda wildcards: config['reference'][wildcards.reference]
-        threads: 20
-        log: join(LOG_DIR, '{sample}_{reference}_bowtie2.log')
-        wildcard_constraints:
-            sample="\w+"
-        shell:
-            "bowtie2 -p {threads} -X 1500 --no-mixed " +
-            "--no-discordant -x  {params} " +
-            " -1 {input.first} -2 {input.second} 2> {log} |" +
-            " samtools view -bS - > {output} "
-
-else:
-    FIRST_MATE_TRIMMED = join(OUT_DIR, '{sample}_trimmed.fastq')
-
-    rule adapter_trimming:
-        """Trim adapters using flexbar"""
-        input: 
-            first=lambda wildcards: config['samples'][wildcards.sample]['read2'], 
-            adapters=config['adapters']
-        output: [FIRST_MATE_TRIMMED]
-        threads: 40
-        log: join(LOG_DIR, 'flexbar.log')
-        shell:
-            "flexbar "
-	    + "-r {input.first} -t " + TRIM_PATTERN
-            + " -a {input.adapters} "
-            + " -f i1.8 -u 10 -ae RIGHT -at 1.0 --threads {threads} "
-            + " --min-read-length 50 "
-            + " > {log}"
-
-    # ------------------------- #
-    # Mapping to the reference genome
-
-    rule read_mapping:
-        "Maps reads against reference genome"
-        input: 
-            first=FIRST_MATE_TRIMMED, 
-        output: MAPPING_RESULTS
-        params: '/data/akalin/wkopp/bowtie2_indices/{reference}/{reference}'
-        threads: 20
-        log: join(LOG_DIR, '{reference}_bowtie2.log')
-        wildcard_constraints:
-            sample="\w+"
-        shell:
-            "bowtie2 -p {threads} -X 1500 --no-mixed " +
-            "--no-discordant -x  {params} " +
-            " -U {input.first} 2> {log} | " +
-            "samtools view -bS - > {output} "
+rule adapter_trimming:
+    """Trim adapters using flexbar"""
+    input: 
+        reads=get_trim_inputs
+    params:
+        target=TRIM_PATTERN,
+        paired=is_paired
+    output: TRIM_PATTERN + '_1.fastq', TRIM_PATTERN + '_2.fastq', TRIM_PATTERN + '.fastq'
+    threads: 40
+    log: join(LOG_DIR, 'flexbar_{sample}.log')
+    message:"""
+        Trimming fastq files:
+            input: {input}
+            output: {output}
+    """
+    run:
+        cmd = 'flexbar '
+        cmd += "-r {input.reads[0]} "
+        if params.paired:
+            cmd += " -p {input.reads[1]} "
+        cmd += " -t {params.target}"
+        if 'adapters' in config['adapters']:
+            cmd += ' -a {}'.format(config['adapters'])
+        cmd += " -f i1.8 -u 10 -ae RIGHT -at 1.0 --threads {threads} "
+        cmd += " --min-read-length 50  > {log} "
+        if params.paired:
+            cmd += " ln -s {params.target}_1.fastq {params.target}.fastq; "
+        else:
+            # create fake output files for single-end data
+            cmd += " ln -s {params.target}.fastq {params.target}_1.fastq; "
+            cmd += " ln -s {params.target}.fastq {params.target}_2.fastq; "
+        shell(cmd)
 
 
+rule read_mapping:
+    "Maps reads against reference genome"
+    input: get_mapping_inputs
+    output: MAPPING_RESULTS
+    params: 
+        genome=lambda wildcards: config['reference'][wildcards.reference],
+        paired=is_paired
+    threads: 20
+    log: join(LOG_DIR, '{sample}_{reference}_bowtie2.log')
+    #wildcard_constraints:
+         #sample="\w+"
+    run:
+        cmd = 'bowtie2'
+        cmd = "bowtie2 -p {threads} -X 1500 --no-mixed --no-discordant "
+        cmd += "-x  {params.genome} "
+
+        if params.paired:
+             cmd += '-1 {input[0]} -2 {input[1]} '
+        else:
+             cmd += '-U {input} '
+        cmd += " 2> {log} | samtools view -bS - > {output} "
+        shell(cmd)
+
+INPUT_ALL.append(expand(rules.read_mapping.output, sample=config['samples'].keys(), reference=config['reference']))
 # ------------------------- #
 # Sort reads by name
 
@@ -233,7 +245,7 @@ rule peak_calling_on_aggregate:
     output: join(OUT_DIR, "{reference}", "macs2", "{sample}_peaks.narrowPeak"), join(OUT_DIR, "{reference}", "macs2", "{sample}_summits.bed")
     params: name='{sample}',
             outdir = join(OUT_DIR, "{reference}", "macs2"),
-            foption = 'BAMPE' if config['pairedend'] else 'BAM'
+            foption = lambda wc: 'BAMPE' if is_paired(wc) else 'BAM'
     log: join(LOG_DIR, 'macs2_{sample}.log')
     shell: 
       " macs2 callpeak --name {params.name} -t {input} -f " +
