@@ -29,8 +29,13 @@ barcodes:
 # reference genomes to map against
 # the paths should point to the respective bowtie2 indices
 reference:
-  dm6: /data/akalin/wkopp/bowtie2_indices/dm6/dm6
-  danrer10: /data/akalin/wkopp/bowtie2_indices/danrer10/danrer10
+  dm6: 
+    bowtie2index: /data/akalin/wkopp/bowtie2_indices/dm6/dm6
+    macs_gsize: dm
+  danrer10: 
+    bowtie2index: /data/akalin/wkopp/bowtie2_indices/danrer10/danrer10
+    macs_gsize: dm
+    
 
 # binsizes to bin the reference genome
 binsize:

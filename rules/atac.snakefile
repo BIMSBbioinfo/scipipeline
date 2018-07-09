@@ -108,7 +108,7 @@ rule read_mapping:
     input: get_mapping_inputs
     output: MAPPING_RESULTS
     params:
-        genome=lambda wildcards: config['reference'][wildcards.reference],
+        genome=lambda wildcards: config['reference'][wildcards.reference]['bowtie2index'],
         paired=is_paired,
         filetype = lambda wildcards: bowtie_input_filetype_option(config['samples'][wildcards.sample]['read1'])
     threads: 20
@@ -209,10 +209,6 @@ rule sort_mapping_pseudo_genome_by_name:
 # ------------------------- #
 # Split the reads according to the barcodes
 #
-print(expand(join(PSGENOME_OUTDIR,
-                                'barcode.{barcode}.sorted.bam'),
-                                barcode=config['barcodes'].keys()))
-print(BAM_SORTED)
 rule split_reads_by_index:
     """Split reads by barcodes"""
     input:
@@ -269,12 +265,13 @@ rule peak_calling_on_aggregate:
     output: join(OUT_DIR, "{reference}", "macs2", "{sample}_peaks.narrowPeak"), join(OUT_DIR, "{reference}", "macs2", "{sample}_summits.bed")
     params: name='{sample}',
             outdir = join(OUT_DIR, "{reference}", "macs2"),
-            foption = lambda wc: 'BAMPE' if is_paired(wc) else 'BAM'
+            foption = lambda wc: 'BAMPE' if is_paired(wc) else 'BAM',
+            gsize = lambda wc: config['references'][wc.reference]['macs_gsize']
     log: join(LOG_DIR, 'macs2_{sample}.log')
     shell:
       " macs2 callpeak --name {params.name} -t {input} -f " +
       "{params.foption}" +
-      " --nomodel --outdir {params.outdir} --call-summits --gsize dm 2> {log} "
+      " --nomodel --outdir {params.outdir} --call-summits --gsize {params.gsize} 2> {log} "
 
 INPUT_ALL.append(expand(rules.peak_calling_on_aggregate.output, reference=config['reference'], sample=config['samples'].keys()))
 
