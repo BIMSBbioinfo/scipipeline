@@ -1,6 +1,6 @@
 (define packages '("snakemake"
                    "bowtie@2.3"
-                   "macs@2.1.0.20151222"
+                   "macs@2.1.1.20160309"
                    "samtools"
                    "python"
                    "python-numpy"
