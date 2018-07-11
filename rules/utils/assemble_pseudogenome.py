@@ -13,7 +13,7 @@ from Bio.Alphabet.IUPAC import IUPACAmbiguousDNA
 
 def create_pseudo_genome(input_table, output_fasta):
 
-    df = pd.read_csv(input_table, header=None)
+    df = pd.read_csv(input_table, header=None, sep='\t')
     record_list = []
     for i, item in enumerate(df[0]):
 
