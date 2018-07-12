@@ -44,5 +44,10 @@ binsize:
   - 5000
   - 10000
 
+# flank to extend the macs2 peak summits at both sides
+peak_flank:
+  - 250
+  - 500
+
 # output directory
 output_dir: /data/akalin/wkopp/sciatac_data/
