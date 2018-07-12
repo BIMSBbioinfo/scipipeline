@@ -1,164 +1,44 @@
 import numpy
-from scipy.sparse import dok_matrix
+from scipy.sparse import dok_matrix, coo_matrix
 from pysam import AlignmentFile
 from HTSeq import BED_Reader
 import h5py
 
-def sparse_count_reads_in_bins(bamfile, binsize, storage):
-    """ This function obtains the counts per bins of equal size
-    across the genome which are stored as sparse array.
+def make_beds_for_intervalsize(bamfile, binsize, storage):
+    """ Genome intervals for binsize.
 
-    The function automatically extracts the genome size from the
-    bam file header.
-    If group tags are available, they will be used to extract
-    the indices from.
-    Finally, the function autmatically detects whether the bam-file
-    contains paired-end or single-end reads.
-    Paired-end reads are counted once at the mid-point between the two
-    pairs while single-end reads are counted at the 5' end.
-
-    Parameters
-    ----------
-    bamfile :  str
-        Path to a bamfile. The bamfile must be indexed.
-    binsize : int
-        Binsize used to bin the genome in consecutive bins.
-    storage : str
-        Path to the output hdf5 file, which contains the counts per chromsome.
+    For a given genome and binsize,
+    this function creates a bed-file containing all intervals.
     """
-
     # Obtain the header information
     afile = AlignmentFile(bamfile, 'rb')
 
     # extract genome size
-    offset = 0
-    genomesize = {}
-    for chrom, length in zip(afile.references, afile.lengths):
-        genomesize[chrom] = offset
-        offset += length//binsize + 1
-    print('found {} chromosomes'.format(len(genomesize)))
 
-    if 'RG' in afile.header:
-        use_group = True
-    else:
-        use_group = False
-
-    barcodes = {}
-    if use_group:
-        # extract barcodes
-        for idx, item in enumerate(afile.header['RG']):
-            barcodes[item['ID']] = idx
-    else:
-        barcodes['dummy'] = 0
-    print('found {} barcodes'.format(len(barcodes)))
-
-    sdokmat = dok_matrix((offset, len(barcodes)), dtype='int32')
-
-    for aln in afile:
-        if aln.is_paired and aln.is_read2:
-            continue
-        if aln.is_paired:
-            # if paired end and first mate
-            idx = (aln.pos + aln.template_length//2)//binsize
-        else:
-            if not aln.is_reverse:
-                idx = (aln.reference_start)//binsize
-            else:
-                idx = (aln.reference_start + aln.reference_length-1)//binsize
-
-        sdokmat[genomesize[aln.reference_name] + idx, 
-             barcodes[aln.get_tag('RG') if use_group else 'dummy']] += 1
-
-    print('sparse matrix shape: {}'.format(sdokmat.shape))
-    print('density: {}'.format(sdokmat.nnz/numpy.prod(sdokmat.shape)))
-    # store the results in COO sparse matrix format
-    scoomat = sdokmat.tocoo()
-    f = h5py.File(storage, 'w')
-    f.create_dataset('data', data=scoomat.data,
-                     dtype='int32', compression='gzip')
-    f.create_dataset('col', data=scoomat.col,
-                     dtype='int32', compression='gzip')
-    f.create_dataset('row', data=scoomat.row,
-                     dtype='int32', compression='gzip')
-    f.close()
-
-
-def count_reads_in_bins(bamfile, binsize, storage):
-    """ This function obtains the counts per bins of equal size
-    across the genome.
-
-    The function automatically extracts the genome size from the
-    bam file header.
-    If group tags are available, they will be used to extract
-    the indices from.
-    Finally, the function autmatically detects whether the bam-file
-    contains paired-end or single-end reads.
-    Paired-end reads are counted once at the mid-point between the two
-    pairs while single-end reads are counted at the 5' end.
-
-    Parameters
-    ----------
-    bamfile :  str
-        Path to a bamfile. The bamfile must be indexed.
-    binsize : int
-        Binsize used to bin the genome in consecutive bins.
-    storage : str
-        Path to the output hdf5 file, which contains the counts per chromsome.
-    """
-
-    # Obtain the header information
-    afile = AlignmentFile(bamfile, 'rb')
-
-    # extract genome size
     genomesize = {}
     for chrom, length in zip(afile.references, afile.lengths):
         genomesize[chrom] = length
+        #offset += length//binsize + 1
     print('found {} chromosomes'.format(len(genomesize)))
+    bed_content = pd.DataFrame(columns=['chr', 'start', 'end'])
 
-    if 'RG' in afile.header:
-        use_group = True
-    else:
-        use_group = False
-
-    barcodes = {}
-    if use_group:
-        # extract barcodes
-        for idx, item in enumerate(afile.header['RG']):
-            barcodes[item['ID']] = idx
-    else:
-        barcodes['dummy'] = 0
-    print('found {} barcodes'.format(len(barcodes)))
-
-    # open up a hdf5 file to dump the dataset in
-    data = h5py.File(storage, 'w', driver='core')
     for chrom in genomesize:
-        data.create_dataset(chrom, (genomesize[chrom]//binsize + 1, len(barcodes)),
-                            dtype='int32', compression='gzip',
-                            data=numpy.zeros((genomesize[chrom]//binsize + 1, len(barcodes))))
-
-    data.create_dataset('barcode_name', data=[ numpy.string_(barcode) for barcode in barcodes])
-    data.create_dataset('barcode_index', data=[ barcodes[barcode] for barcode in barcodes])
-
-    for aln in afile:
-        if aln.is_paired and aln.is_read2:
-            continue
-        if aln.is_paired:
-            # if paired end and first mate
-            idx = (aln.pos + aln.template_length//2)//binsize
-        else:
-            if not aln.is_reverse:
-                idx = (aln.reference_start)//binsize
-            else:
-                idx = (aln.reference_start + aln.reference_length-1)//binsize
-
-        data[aln.reference_name][
-             idx, barcodes[aln.get_tag('RG') if use_group else 'dummy']] += 1
-
-    afile.close()
-    data.close()
+        nbins = genomesize[chrom]//binsize
+        starts = [int(i*binsize) for i in nbins]
+        ends = [int((i+1)*binsize) for i in nbins]
+        chr_ = [chrom] * nbins
+        cont = {'chr': chr_, 'start': starts, 'end': ends}
+        starts = [int(i*binsize) for i in nbins]
+        bed_entry = pd.DataFrame(cont)
+        bed_content = bed_content.append(bed_entry, ignore_index=True, sort=False)
+    bed_content.to_csv(storage, sep='\t', header=False, index=False,
+                       columns=['chr', 'start', 'end'])
 
 
-def sparse_count_reads_in_regions(bamfile, regions, storage, flank=0):
+
+
+def sparse_count_reads_in_regions(bamfile, regions, storage, flank=0,
+                                  template_length=1000):
     """ This function obtains the counts per bins of equal size
     across the genome.
 
@@ -181,6 +61,10 @@ def sparse_count_reads_in_regions(bamfile, regions, storage, flank=0):
         Path to the output hdf5 file, which contains the counts per chromsome.
     flank : int
         Extension of the regions in base pairs. Default: 0
+    template_length : int
+        Assumed template length. This is used when counting paired-end reads
+        at the mid-point and the individual reads do not overlap with
+        the given region, but the mid-point does.
     """
 
     # Obtain the header information
@@ -220,7 +104,7 @@ def sparse_count_reads_in_regions(bamfile, regions, storage, flank=0):
         iv = region.iv.copy()
         iv.start -= flank + tlen
         iv.end += flank + tlen
-        
+
         if iv.start < tlen:
             iv.start = tlen
         if iv.end >= genomesize[iv.chrom] - tlen:
@@ -234,132 +118,40 @@ def sparse_count_reads_in_regions(bamfile, regions, storage, flank=0):
             if not aln.is_paired:
                 if not aln.is_reverse:
                     if aln.pos >= iv.start and aln.pos < iv.end:
-                        sdokmat[idx, 
+                        sdokmat[idx,
                         barcodes[aln.get_tag('RG') if use_group else 'dummy']] += 1
                 else:
                     if aln.pos + aln.reference_length - 1 >= iv.start and \
                        aln.pos + aln.reference_length - 1 < iv.end:
-                        sdokmat[idx, 
+                        sdokmat[idx,
                         barcodes[aln.get_tag('RG') if use_group else 'dummy']] += 1
 
     afile.close()
 
     print('sparse matrix shape: {}'.format(sdokmat.shape))
     print('density: {}'.format(sdokmat.nnz/numpy.prod(sdokmat.shape)))
+
     # store the results in COO sparse matrix format
     scoomat = sdokmat.tocoo()
-    f = h5py.File(storage, 'w')
-    f.create_dataset('data', data=scoomat.data,
-                     dtype='int32', compression='gzip')
-    f.create_dataset('col', data=scoomat.col,
-                     dtype='int32', compression='gzip')
-    f.create_dataset('row', data=scoomat.row,
-                     dtype='int32', compression='gzip')
-    f.close()
+    # sort lexicographically
+
+    order_ = np.lexsort((spcoo.col, spcoo.row))
+    indices = np.asarray([x for x in zip(spcoo.row, spcoo.col)], dtype=np.int64)[order_]
+    values = spcoo.data.astype(np.float32)[order_]
+#    shape = np.asarray(spcoo.shape, dtype=np.int64)
+    cont = {'region': indices[:,0], 'cell': indices[:, 1], 'count': values}
+
+    df = pd.DataFrame(cont)
+    df.to_csv(storage, sep='\t', header=True, index=False)
 
 
-def count_reads_in_regions(bamfile, regions, storage, flank=0):
-    """ This function obtains the counts per bins of equal size
-    across the genome.
+def per_barcode_count_summary(cnt_mat, peak_counts, storage):
+    df_cnt = pd.read_csv(cnt_mat, header=[0], sep='\t')
+    df_peak = pd.read_csv(peak_counts, header=[0], sep='\t')
 
-    The function automatically extracts the genome size from the
-    bam file header.
-    If group tags are available, they will be used to extract
-    the indices from.
-    Finally, the function autmatically detects whether the bam-file
-    contains paired-end or single-end reads.
-    Paired-end reads are counted once at the mid-point between the two
-    pairs while single-end reads are counted at the 5' end.
+    per_bc_count = df_cnt.groupby('cell').agg('sum')['count']
+    per_bc_count_in_peaks = df_peak.groupby('cell').agg('sum')['count']
+    per_bc_count['count_in_peaks'] = per_bc_count_in_peaks['count']
+    per_bc_count['percent_in_peaks'] = per_bc_count.apply(lambda row: row['count_in_peaks']/row['count'])
 
-    Parameters
-    ----------
-    bamfile :  str
-        Path to a bamfile. The bamfile must be indexed.
-    regions : str
-        BED or GFF file containing the regions of interest.
-    storage : str
-        Path to the output hdf5 file, which contains the counts per chromsome.
-    flank : int
-        Extension of the regions in base pairs. Default: 0
-    """
-
-    # Obtain the header information
-    afile = AlignmentFile(bamfile, 'rb')
-
-    # extract genome lengths
-    print('get genomesize')
-    # extract genome size
-    genomesize = {}
-    for chrom, length in zip(afile.references, afile.lengths):
-        genomesize[chrom] = length
-    print('found {} chromosomes'.format(len(genomesize)))
-
-    nreg = 0
-    regfile = BED_Reader(regions)
-    for reg in regfile:
-        nreg += 1
-
-    if 'RG' in afile.header:
-        use_group = True
-    else:
-        use_group = False
-
-    barcodes = {}
-    if use_group:
-        # extract barcodes
-        for idx, item in enumerate(afile.header['RG']):
-            barcodes[item['ID']] = idx
-    else:
-        barcodes['dummy'] = 0
-
-    # open up a hdf5 file to dump the dataset in
-    f = h5py.File(storage, 'w', driver='core')
-    data = f.create_dataset('regions', (nreg, len(barcodes)),
-                            dtype='int32', compression='gzip',
-                            data=numpy.zeros((nreg, len(barcodes))))
-
-    for barcode in barcodes:
-        f.attrs[barcode] = barcodes[barcode]
-
-    tlen = 200
-    for idx, region in enumerate(regfile):
-        iv = region.iv.copy()
-        iv.start -= flank + tlen
-        iv.end += flank + tlen
-        
-        if iv.start < tlen:
-            iv.start = tlen
-        if iv.end >= genomesize[iv.chrom] - tlen:
-            iv.end = genomesize[iv.chrom] - 1 - tlen
-        for aln in afile.fetch(iv.chrom, iv.start - tlen, iv.end + tlen):
-            if aln.is_paired and aln.is_read1:
-                # if paired end and first mate
-                if aln.pos + aln.template_length//2 >= iv.start and \
-                   aln.pos + aln.template_length//2 < iv.end:
-                   data[idx, 
-                   barcodes[aln.get_tag('RG') if use_group else 'dummy']] += 1
-            if not aln.is_paired:
-                if not aln.is_reverse:
-                    if aln.pos >= iv.start and aln.pos < iv.end:
-                        data[idx, 
-                        barcodes[aln.get_tag('RG') if use_group else 'dummy']] += 1
-                else:
-                    if aln.pos + aln.reference_length - 1 >= iv.start and \
-                       aln.pos + aln.reference_length - 1 < iv.end:
-                        data[idx, 
-                        barcodes[aln.get_tag('RG') if use_group else 'dummy']] += 1
-
-    afile.close()
-    f.close()
-
-
-if __name__ == '__main__':
-    #import cProfile
-    from os.path import join
-    bams = join('..', '..', '..', 'sciatac_data', 
-                "dm6", "atac_barcode_dedup.bam")
-    
-    output = join('..', '..', '..', 'sciatac_data', 
-                "dm6", "cnt_test.h5")
-    #cProfile.run('count_reads_in_bins(bams, 10000, output)')
-    count_reads_in_bins(bams, 10000, output)
+    per_bc_count.to_csv(storage, sep='\t')

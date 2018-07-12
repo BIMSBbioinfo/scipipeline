@@ -5,7 +5,7 @@ import pysam
 from utils.assemble_pseudogenome import create_pseudo_genome
 from utils.split_reads import split_reads_by_barcode
 from utils.split_reads import deduplicate_reads
-from utils.count_matrix import sparse_count_reads_in_bins
+from utils.count_matrix import make_beds_for_intervalsize
 from utils.count_matrix import sparse_count_reads_in_regions
 
 # Reference genome and mapping index
@@ -14,22 +14,6 @@ BAM_SORTED = join(OUT_DIR, '{reference}', '{sample}.sorted.bam')
 
 PSGENOME_OUTDIR = join(OUT_DIR, 'barcodes')
 
-
-# ------------------------- #
-# Adapter trimming
-#
-# Note: We set the -u parameter to 200
-# to ensure that all reads are forwarded to the
-# next processing phase. Otherwise, matching
-# the reads with the barcodes becomes a hassle
-
-# ------------------------- #
-# Adapter trimming
-#
-# Note: We set the -u parameter to 200
-# to ensure that all reads are forwarded to the
-# next processing phase. Otherwise, matching
-# the reads with the barcodes becomes a hassle
 
 # Trimmed reads
 TRIM_PATTERN = join(OUT_DIR, '{sample}_trimmed')
@@ -100,7 +84,7 @@ rule quality_control:
     output: join(OUT_DIR, 'fastqc', '{sample}')
     shell:
       "mkdir -p {output}; fastqc {input} -o {output}"
-    
+
 INPUT_ALL.append(expand(rules.quality_control.output, sample=config['samples'].keys()))
 
 rule read_mapping:
@@ -113,8 +97,6 @@ rule read_mapping:
         filetype = lambda wildcards: bowtie_input_filetype_option(config['samples'][wildcards.sample]['read1'])
     threads: 20
     log: join(LOG_DIR, '{sample}_{reference}_bowtie2.log')
-    #wildcard_constraints:
-         #sample="\w+"
     run:
         cmd = 'bowtie2'
         cmd = "bowtie2 -p {threads} -X 1500 --no-mixed --no-discordant "
@@ -284,8 +266,12 @@ rule counting_reads_in_bins:
     input:
         bams = join(OUT_DIR, "{reference}", "{sample}.barcoded.dedup.bam"),
         bai = join(OUT_DIR, "{reference}", "{sample}.barcoded.dedup.bam.bai")
-    output: join(OUT_DIR, '{reference}', 'countmatrix', '{sample}_bin_counts_{binsize}.h5')
-    run: sparse_count_reads_in_bins(input.bams, int(wildcards.binsize), output[0])
+    output:
+        bins = join(OUT_DIR, '{reference}', 'countmatrix', '{sample}_bin_{binsize}.bed'),
+        countmatrix = join(OUT_DIR, '{reference}', 'countmatrix', '{sample}_bin_{binsize}.tab')
+    run:
+        make_beds_for_intervalsize(input.bams, int(wildcards.binsize), output.bins)
+        sparse_count_reads_in_regions(input.bams, output.bins, output.countmatrix, flank=0)
 
 
 INPUT_ALL.append(expand(rules.counting_reads_in_bins.output,
@@ -302,10 +288,12 @@ rule counting_reads_in_peaks:
         bams = join(OUT_DIR, "{reference}", "{sample}.barcoded.dedup.bam"),
         bai = join(OUT_DIR, "{reference}", "{sample}.barcoded.dedup.bam.bai"),
         regions = join(OUT_DIR, "{reference}", "macs2", "{sample}_summits.bed")
-    output: join(OUT_DIR, '{reference}', 'countmatrix', '{sample}_peak_counts.h5')
-    params: flank=250
+    output: join(OUT_DIR, '{reference}', 'countmatrix', '{sample}_peak_counts_flank_{flank}.h5')
     run: sparse_count_reads_in_regions(input.bams, input.regions, \
-         output[0], flank=params.flank)
+         output[0], flank=int(wildcards.flank))
 
 
-INPUT_ALL.append(expand(rules.counting_reads_in_peaks.output, reference=config['reference'], sample=config['samples'].keys()))
+INPUT_ALL.append(expand(rules.counting_reads_in_peaks.output,
+                        reference=config['reference'],
+                        sample=config['samples'].keys(),
+                        flank=config['peak_flank']))
