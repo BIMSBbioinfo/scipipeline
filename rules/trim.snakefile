@@ -21,7 +21,7 @@ rule adapter_trimming:
         if params.paired:
             cmd += " -p {input.reads[1]} "
         cmd += " -t {params.target}"
-        if 'adapters' in config['adapters']:
+        if 'adapters' in config:
             cmd += ' -a {}'.format(config['adapters'])
         cmd += " -f i1.8 -u 10 -ae RIGHT -at 1.0 --threads {threads} "
         cmd += " --min-read-length 50  > {log} && "
