@@ -6,6 +6,42 @@ from pysam import view
 from collections import defaultdict
 
 
+def augment_alignment_by_barcode_from_name(inbam, outbam):
+    """
+    This function takes a bam-file and outputs
+    a bam-file with RG-tag representing the barcodes.
+    The barcodes are extracted from the read name
+    where the the read name is assumed to have the form:
+    @<barcodename>:<number> ...
+    """
+    treatment_reader = AlignmentFile(treatment_bam, 'rb')
+    bam_writer = AlignmentFile(output_bam + '.tmp', 'wb', template=treatment_reader)
+
+    barcodes = set()
+    for aln in treatment_reader.fetch(until_eof=True):
+        # extract barcode between @ and the first :
+        barcode = aln.query_name.split(':')[0][1:]
+        barcodes.add(barcode)
+
+        aln.set_tag('RG', barcode)
+        bam_writer.write(aln)
+
+    treatment_reader.close()
+    bam_writer.close()
+
+    # update the header with the available barcodes
+    f = AlignmentFile(output_bam + '.tmp', 'rb')
+    header = f.header
+    header['RG'] = [{'ID': bc} for bc in barcodes]
+    bam_writer = AlignmentFile(output_bam, 'wb', header=header)
+    for aln in f.fetch(until_eof=True):
+        bam_writer.write(aln)
+
+    f.close()
+    os.remove(output_bam + '.tmp')
+    bam_writer.close()
+
+
 def split_reads_by_barcode(barcode_bams, treatment_bam,
                            output_bam, min_mapq=None, max_mismatches=1):
     """Splits the reads by barcodes.

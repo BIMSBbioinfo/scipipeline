@@ -24,6 +24,16 @@ INPUT_ALL = []
 ############ BEGIN PIPELINE RULES ############
 
 include: "rules/atac.snakefile"
+include: "rules/trim.snakefile"
+include: "rules/fastqc.snakefile"
+include: "rules/mapping.snakefile"
+if 'barcodes' in config:
+  include: "rules/combinatorialindexing.snakefile"
+else:
+  include: "rules/barcodebyname.snakefile"
+include: "rules/deduplication.snakefile"
+include: "rules/peakcalling.snakefile"
+include: "rules/countmatrix.snakefile"
 
 
 #### ALL ####
