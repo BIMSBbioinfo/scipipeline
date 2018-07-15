@@ -162,7 +162,8 @@ def deduplicate_reads(bamin, bamout, by_rg=True):
     output = AlignmentFile(bamout, 'wb', template=bamfile)
 
     # grep all barcodes from the header
-    barcodes = set()
+    #barcodes = set()
+    last_barcode = {}
 
     for aln in bamfile.fetch(until_eof=True):
         # if previous hash matches the current has
@@ -173,9 +174,15 @@ def deduplicate_reads(bamin, bamout, by_rg=True):
         else:
             val = (aln.reference_name, aln.reference_start,
                    aln.is_reverse, aln.tlen)
-        if val not in barcodes:
-            barcodes.add(val)
+
+        if val[:2] not in last_barcode:
+            # clear dictionary
+            last_barcode={val[:2]: set()}
+                
+        if val not in last_barcode[val[:2]]:
             output.write(aln)
+            # add alignment info
+            last_barcode[val[:2]].add(val)
 
 if __name__ == '__main__':
     barcode_bams = ['pseudo_genome_I{}_sorted.bam'.format(i) for i in [1,2,3,4]]
