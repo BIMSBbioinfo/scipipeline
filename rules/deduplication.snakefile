@@ -34,7 +34,8 @@ rule create_bigwig:
     """Create bigwig of alignment"""
     input: join(OUT_DIR, "{reference}", "{sample}.barcoded.dedup.bam")
     output: join(OUT_DIR, "{reference}", "{sample}.barcoded.dedup.bw")
+    threads: 10
     shell:
-        "bamCoverage -b {input} -o {output}"
+        "bamCoverage -b {input} -o {output} -p {threads}"
 
 INPUT_ALL.append(expand(rules.create_bigwig.output, reference=config['reference'], sample=samples.Name.tolist()))
