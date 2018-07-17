@@ -26,6 +26,9 @@ barcodes:
     reads: /scratch/AG_Ohler/Scott/sciATACtest/noSampleSheet/Undetermined_S0_I4_001.fastq.gz
     reference: /data/akalin/wkopp/scott_sciatac_refbarcodes/I4.tab # can also be a fasta file containing the barcodes
 
+min_mapq: 5
+max_mismatches: 2
+
 # reference genomes to map against
 # the paths should point to the respective bowtie2 indices
 reference:

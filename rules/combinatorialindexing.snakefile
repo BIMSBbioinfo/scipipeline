@@ -76,8 +76,8 @@ rule split_reads_by_index:
        read_aln=join(OUT_DIR, '{reference}', '{sample}.namesorted.bam')
     output: temp(join(OUT_DIR, "{reference}", "{sample}.barcoded.bam"))
     params:
-       min_mapq = 40,
-       max_mismatches = 1
+       min_mapq = config['min_mapq'],
+       max_mismatches = config['max_mismatch']
     run:
        split_reads_by_barcode(input.barcode_alns,
                               input.read_aln,
