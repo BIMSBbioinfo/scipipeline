@@ -19,7 +19,7 @@ rule counting_reads_in_bins:
 INPUT_ALL.append(expand(rules.counting_reads_in_bins.output,
                         reference=config['reference'],
                         binsize=config['binsize'],
-                        sample=config['samples'].keys()))
+                        sample=samples.Name.tolist())
 
 # ------------------------- #
 # Count reads in regions
@@ -37,5 +37,5 @@ rule counting_reads_in_peaks:
 
 INPUT_ALL.append(expand(rules.counting_reads_in_peaks.output,
                         reference=config['reference'],
-                        sample=config['samples'].keys(),
+                        sample=samples.Name.tolist(),
                         flank=config['peak_flank']))

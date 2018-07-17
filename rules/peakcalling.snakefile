@@ -16,4 +16,4 @@ rule peak_calling_on_aggregate:
       "{params.foption}" +
       " --nomodel --keep-dup all --outdir {params.outdir} --call-summits --gsize {params.gsize} 2> {log} "
 
-INPUT_ALL.append(expand(rules.peak_calling_on_aggregate.output, reference=config['reference'], sample=config['samples'].keys()))
+INPUT_ALL.append(expand(rules.peak_calling_on_aggregate.output, reference=config['reference'], sample=samples.Name.tolist()))

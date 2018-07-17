@@ -6,7 +6,7 @@ rule read_mapping:
     params:
         genome=lambda wildcards: config['reference'][wildcards.reference]['bowtie2index'],
         paired=is_paired,
-        filetype = lambda wildcards: bowtie_input_filetype_option(config['samples'][wildcards.sample]['read1'])
+        filetype = lambda wildcards: bowtie_input_filetype_option(samples[samples.Name == wildcards.sample].read1.tolist()[0])
     threads: 20
     log: join(LOG_DIR, '{sample}_{reference}_bowtie2.log')
     run:
@@ -22,4 +22,4 @@ rule read_mapping:
         cmd += " 2> {log} | samtools view -bS - > {output} "
         shell(cmd)
 
-INPUT_ALL.append(expand(rules.read_mapping.output, sample=config['samples'].keys(), reference=config['reference']))
+INPUT_ALL.append(expand(rules.read_mapping.output, sample=samples.Name.tolist(), reference=config['reference']))

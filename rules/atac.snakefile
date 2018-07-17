@@ -16,31 +16,37 @@ PSGENOME_OUTDIR = join(OUT_DIR, 'barcodes')
 TRIM_PATTERN = join(OUT_DIR, '{sample}_trimmed')
 
 
+def is_paired(wildcards):
+    if os.path.exists(samples[samples.Name == wildcards.sample].read2.tolist()[0]):
+        return True
+    else:
+        return False
+
+
 def get_trim_inputs(wildcards):
-    samples = config['samples'][wildcards.sample]
-    return [samples[x] for x in samples]
+    samples = samples[samples.Name == wildcards.sample]
+    in_ = samples[samples.Name == wildcards.sample].read1.tolist()
+    if is_paired(wildcards):
+        in_ += samples[samples.Name == wildcards.sample].read2.tolist()
+
+    return in_
 
 
 def get_mapping_inputs(wildcards):
-    samples = config['samples'][wildcards.sample]
+    samples = samples[samples.Name == wildcards.sample]
     if not config['trim_reads']:
         # trimming is not required.
         # the raw reads will be passed to the mapper
         # directly
-        return [samples[x] for x in samples]
+        return get_trim_inputs(wildcards)
 
     prefix = join(OUT_DIR, wildcards.sample + '_trimmed')
 
-    if 'read2' in samples:
+    if is_paired(wildcards):
         return [prefix + '_1.fastq', prefix + '_2.fastq']
     else:
         return [prefix + '.fastq']
 
-def is_paired(wildcards):
-    if 'read2' in config['samples'][wildcards.sample]:
-        return True
-    else:
-        return False
 
 
 def bowtie_input_filetype_option(filename):

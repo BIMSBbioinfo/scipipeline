@@ -6,4 +6,4 @@ rule quality_control:
     shell:
       "mkdir -p {output}; fastqc {input} -o {output}"
 
-INPUT_ALL.append(expand(rules.quality_control.output, sample=config['samples'].keys()))
+INPUT_ALL.append(expand(rules.quality_control.output, sample=samples.Name.tolist()))

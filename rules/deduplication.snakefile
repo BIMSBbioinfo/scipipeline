@@ -18,7 +18,7 @@ rule deduplicate_split_reads_by_barcode:
     run:
         deduplicate_reads(input[0], output[0])
 
-INPUT_ALL.append(expand(rules.deduplicate_split_reads_by_barcode.output, reference=config['reference'], sample=config['samples'].keys()))
+INPUT_ALL.append(expand(rules.deduplicate_split_reads_by_barcode.output, reference=config['reference'], sample=samples.Name.tolist()))
 
 # ------------------------- #
 # Index the reads
@@ -35,4 +35,3 @@ rule create_bigwig:
     output: join(OUT_DIR, "{reference}", "{sample}.barcoded.dedup.bw")
     shell:
         "bamCoverage -b {input} -o {output}"
-

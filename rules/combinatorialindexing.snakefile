@@ -16,7 +16,7 @@ rule sort_mapping_by_name:
 
 rule make_pseudo_genomes:
     """Make pseudo genomes from indices"""
-    input: lambda wildcards: config['barcodes'][wildcards.barcode]['reference']
+    input: lambda wildcards: barcodes[barcodes.Name==wildcards.barcode].reference.tolist()
     output: join(PSGENOME_OUTDIR, '{barcode}.fasta')
     run:
         create_pseudo_genome(input[0], output[0])
@@ -38,9 +38,9 @@ rule map_to_pseudo_genome:
     """Make bowtie2 index from pseudo genomes"""
     params:
         genome = join(PSGENOME_OUTDIR, '{barcode}'),
-        filetype = lambda wildcards: bowtie_input_filetype_option(config['barcodes'][wildcards.barcode]['reads'])
+        filetype = lambda wildcards: bowtie_input_filetype_option(barcodes[barcodes.Name==wildcards.barcode].read.tolist()[0])
     input:
-        fastq = lambda wildcards: config['barcodes'][wildcards.barcode]['reads'],
+        fastq = lambda wildcards: barcodes[barcodes.Name==wildcards.barcode].read.tolist(),
         index = join(PSGENOME_OUTDIR, '{barcode}.1.bt2')
     output: join(PSGENOME_OUTDIR, 'barcode.{barcode}.bam')
     threads: 10
@@ -67,12 +67,14 @@ rule sort_mapping_pseudo_genome_by_name:
 # ------------------------- #
 # Split the reads according to the barcodes
 #
+
 rule split_reads_by_index:
     """Split reads by barcodes"""
     input:
-       barcode_alns=expand(join(PSGENOME_OUTDIR,
+       barcode_alns= lambda wc:
+                        expand(join(PSGENOME_OUTDIR,
                                 'barcode.{barcode}.namesorted.bam'),
-                                barcode=config['barcodes'].keys()),
+                                barcode=samples[samples.Name==wc.sample].barcodes.tolist()[0].split(';'))
        read_aln=join(OUT_DIR, '{reference}', '{sample}.namesorted.bam')
     output: temp(join(OUT_DIR, "{reference}", "{sample}.barcoded.bam"))
     params:

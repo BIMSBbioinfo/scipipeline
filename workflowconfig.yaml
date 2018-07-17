@@ -1,30 +1,13 @@
 name: scATAC
 
-# one or more samples
-samples:
-  atac:
-    read1: /scratch/AG_Ohler/Scott/sciATACtest/noSampleSheet/Undetermined_S0_R1_001.fastq.gz
-    read2: /scratch/AG_Ohler/Scott/sciATACtest/noSampleSheet/Undetermined_S0_R2_001.fastq.gz
+samples: "./samplesheet.tsv"
+barcodes: "./barcodesheet.tsv"
+
 
 # Specify whether the reads should be trimmmed
 trim_reads: True
 # adapters to eliminate with flexbar
 adapters: /data/ohler/Scott/Asli_Scripts/sciAtacAdapters.fa
-
-# barcode reads and references contain the UMIs
-barcodes:
-  I1:
-    reads: /scratch/AG_Ohler/Scott/sciATACtest/noSampleSheet/Undetermined_S0_I1_001.fastq.gz
-    reference: /data/akalin/wkopp/scott_sciatac_refbarcodes/I1.tab # can also be a fasta file containing the barcodes
-  I2:
-    reads: /scratch/AG_Ohler/Scott/sciATACtest/noSampleSheet/Undetermined_S0_I2_001.fastq.gz
-    reference: /data/akalin/wkopp/scott_sciatac_refbarcodes/I2.tab # can also be a fasta file containing the barcodes
-  I3:
-    reads: /scratch/AG_Ohler/Scott/sciATACtest/noSampleSheet/Undetermined_S0_I3_001.fastq.gz
-    reference: /data/akalin/wkopp/scott_sciatac_refbarcodes/I3.tab # can also be a fasta file containing the barcodes
-  I4:
-    reads: /scratch/AG_Ohler/Scott/sciATACtest/noSampleSheet/Undetermined_S0_I4_001.fastq.gz
-    reference: /data/akalin/wkopp/scott_sciatac_refbarcodes/I4.tab # can also be a fasta file containing the barcodes
 
 min_mapq: 5
 max_mismatches: 2
@@ -32,13 +15,13 @@ max_mismatches: 2
 # reference genomes to map against
 # the paths should point to the respective bowtie2 indices
 reference:
-  dm6: 
+  dm6:
     bowtie2index: /data/akalin/wkopp/bowtie2_indices/dm6/dm6
     macs_gsize: dm
-  danrer10: 
+  danrer10:
     bowtie2index: /data/akalin/wkopp/bowtie2_indices/danrer10/danrer10
     macs_gsize: dm
-    
+
 
 # binsizes to bin the reference genome
 binsize:

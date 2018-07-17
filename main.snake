@@ -7,7 +7,7 @@ import os
 import yaml
 
 import numpy as np
-
+import pandas as
 
 #### COMMON RUN SPECIFICS ####
 
@@ -19,6 +19,9 @@ LOG_DIR = os.path.join(OUT_DIR, "logs")
 
 INPUT_ALL = []
 
+samples = pd.DataFrame(config["samples"])
+if 'barcodes' in config:
+    barcodes = pd.DataFrame(config['barcodes'])
 
 
 ############ BEGIN PIPELINE RULES ############
@@ -28,9 +31,9 @@ include: "rules/trim.snakefile"
 include: "rules/fastqc.snakefile"
 include: "rules/mapping.snakefile"
 if 'barcodes' in config:
-  include: "rules/combinatorialindexing.snakefile"
+    include: "rules/combinatorialindexing.snakefile"
 else:
-  include: "rules/barcodebyname.snakefile"
+    include: "rules/barcodebyname.snakefile"
 include: "rules/deduplication.snakefile"
 include: "rules/peakcalling.snakefile"
 include: "rules/countmatrix.snakefile"
