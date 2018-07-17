@@ -28,3 +28,11 @@ rule index_deduplicate_split_reads:
     input: join(OUT_DIR, "{reference}", "{sample}.barcoded.dedup.bam")
     output: join(OUT_DIR, "{reference}", "{sample}.barcoded.dedup.bam.bai")
     shell: "samtools index {input}"
+
+
+rule create_bigwig:
+    input: join(OUT_DIR, "{reference}", "{sample}.barcoded.dedup.bam")
+    output: join(OUT_DIR, "{reference}", "{sample}.barcoded.dedup.bw")
+    shell:
+        "bamCoverage -b {input} -o {output}"
+
