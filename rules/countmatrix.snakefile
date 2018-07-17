@@ -3,17 +3,26 @@
 # ------------------------- #
 # Count reads in bins
 
-rule counting_reads_in_bins:
-    """Counting reads per barcode"""
+rule make_counting_bins:
     input:
         bams = join(OUT_DIR, "{reference}", "{sample}.barcoded.dedup.bam"),
         bai = join(OUT_DIR, "{reference}", "{sample}.barcoded.dedup.bam.bai")
     output:
-        bins = join(OUT_DIR, '{reference}', 'countmatrix', '{sample}_bin_{binsize}.bed'),
-        countmatrix = join(OUT_DIR, '{reference}', 'countmatrix', '{sample}_bin_{binsize}.tab')
+        bins = join(OUT_DIR, '{reference}', 'countmatrix', '{sample}_bin_{binsize}.bed')
     run:
         make_beds_for_intervalsize(input.bams, int(wildcards.binsize), output.bins)
-        sparse_count_reads_in_regions(input.bams, output.bins, output.countmatrix, flank=0)
+
+
+rule counting_reads_in_bins:
+    """Counting reads per barcode"""
+    input:
+        bams = join(OUT_DIR, "{reference}", "{sample}.barcoded.dedup.bam"),
+        bai = join(OUT_DIR, "{reference}", "{sample}.barcoded.dedup.bam.bai"),
+        bins = join(OUT_DIR, '{reference}', 'countmatrix', '{sample}_bin_{binsize}.bed')
+    output:
+        countmatrix = join(OUT_DIR, '{reference}', 'countmatrix', '{sample}_bin_{binsize}.tab')
+    run:
+        sparse_count_reads_in_regions(input.bams, input.bins, output.countmatrix, flank=0)
 
 
 INPUT_ALL.append(expand(rules.counting_reads_in_bins.output,

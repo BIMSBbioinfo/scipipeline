@@ -1,4 +1,5 @@
 import numpy
+import pandas as pd
 from scipy.sparse import dok_matrix, coo_matrix
 from pysam import AlignmentFile
 from HTSeq import BED_Reader
