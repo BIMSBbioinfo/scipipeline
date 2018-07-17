@@ -2,7 +2,7 @@
 rule read_mapping:
     "Maps reads against reference genome"
     input: get_mapping_inputs
-    output: join(OUT_DIR, '{reference}', '{sample}.bam')
+    output: temp(join(OUT_DIR, '{reference}', '{sample}.bam'))
     params:
         genome=lambda wildcards: config['reference'][wildcards.reference]['bowtie2index'],
         paired=is_paired,

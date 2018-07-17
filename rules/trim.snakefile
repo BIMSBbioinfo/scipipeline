@@ -7,7 +7,7 @@ rule adapter_trimming:
     params:
         target=TRIM_PATTERN,
         paired=is_paired
-    output: TRIM_PATTERN + '_1.fastq', TRIM_PATTERN + '_2.fastq', TRIM_PATTERN + '.fastq'
+    output: temp(TRIM_PATTERN + '_1.fastq'), temp(TRIM_PATTERN + '_2.fastq'), temp(TRIM_PATTERN + '.fastq')
     threads: 40
     log: join(LOG_DIR, 'flexbar_{sample}.log')
     message:"""
