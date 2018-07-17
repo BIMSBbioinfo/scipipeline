@@ -24,11 +24,10 @@ def make_beds_for_intervalsize(bamfile, binsize, storage):
 
     for chrom in genomesize:
         nbins = genomesize[chrom]//binsize
-        starts = [int(i*binsize) for i in nbins]
-        ends = [int((i+1)*binsize) for i in nbins]
+        starts = [int(i*binsize) for i in range(nbins)]
+        ends = [int((i+1)*binsize) for i in range(nbins)]
         chr_ = [chrom] * nbins
         cont = {'chr': chr_, 'start': starts, 'end': ends}
-        starts = [int(i*binsize) for i in nbins]
         bed_entry = pd.DataFrame(cont)
         bed_content = bed_content.append(bed_entry, ignore_index=True, sort=False)
     bed_content.to_csv(storage, sep='\t', header=False, index=False,
