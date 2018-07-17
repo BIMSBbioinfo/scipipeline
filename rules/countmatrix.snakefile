@@ -19,7 +19,7 @@ rule counting_reads_in_bins:
 INPUT_ALL.append(expand(rules.counting_reads_in_bins.output,
                         reference=config['reference'],
                         binsize=config['binsize'],
-                        sample=samples.Name.tolist())
+                        sample=samples.Name.tolist()))
 
 # ------------------------- #
 # Count reads in regions
@@ -31,8 +31,7 @@ rule counting_reads_in_peaks:
         bai = join(OUT_DIR, "{reference}", "{sample}.barcoded.dedup.bam.bai"),
         regions = join(OUT_DIR, "{reference}", "macs2", "{sample}_summits.bed")
     output: join(OUT_DIR, '{reference}', 'countmatrix', '{sample}_peak_counts_flank_{flank}.h5')
-    run: sparse_count_reads_in_regions(input.bams, input.regions, \
-         output[0], flank=int(wildcards.flank))
+    run: sparse_count_reads_in_regions(input.bams, input.regions, output[0], flank=int(wildcards.flank))
 
 
 INPUT_ALL.append(expand(rules.counting_reads_in_peaks.output,

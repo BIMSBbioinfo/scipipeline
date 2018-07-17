@@ -16,8 +16,10 @@ rule sort_mapping_by_name:
 
 rule make_pseudo_genomes:
     """Make pseudo genomes from indices"""
-    input: lambda wildcards: barcodes[barcodes.Name==wildcards.barcode].reference.tolist()
+    input: lambda wildcards: barcodes[barcodes.Name == wildcards.barcode].reference.tolist()
     output: join(PSGENOME_OUTDIR, '{barcode}.fasta')
+    wildcard_constraints:
+        barcode="[\w\d]+"
     run:
         create_pseudo_genome(input[0], output[0])
 
@@ -33,18 +35,23 @@ rule make_bowtie2_index_from_pseudo_genomes:
 
 # ------------------------- #
 # Mapping to pseudo genome
+def _bowtie_input_type_bc(wildcards):
+    filename = barcodes[barcodes.Name==wildcards.barcode].read.tolist()[0]
+    return bowtie_input_filetype_option(filename)
 
 rule map_to_pseudo_genome:
     """Make bowtie2 index from pseudo genomes"""
     params:
         genome = join(PSGENOME_OUTDIR, '{barcode}'),
-        filetype = lambda wildcards: bowtie_input_filetype_option(barcodes[barcodes.Name==wildcards.barcode].read.tolist()[0])
+        filetype = _bowtie_input_type_bc
     input:
         fastq = lambda wildcards: barcodes[barcodes.Name==wildcards.barcode].read.tolist(),
         index = join(PSGENOME_OUTDIR, '{barcode}.1.bt2')
     output: join(PSGENOME_OUTDIR, 'barcode.{barcode}.bam')
     threads: 10
     log: join(LOG_DIR, '{barcode}.log')
+    wildcard_constraints:
+        barcode="[\w\d]+"
     shell:
         "bowtie2 -p {threads} -x {params.genome} " +
         "{params.filetype} -U {input.fastq} 2> {log} " +
@@ -74,7 +81,7 @@ rule split_reads_by_index:
        barcode_alns= lambda wc:
                         expand(join(PSGENOME_OUTDIR,
                                 'barcode.{barcode}.namesorted.bam'),
-                                barcode=samples[samples.Name==wc.sample].barcodes.tolist()[0].split(';'))
+                                barcode=samples[samples.Name==wc.sample].barcodes.tolist()[0].split(';')),
        read_aln=join(OUT_DIR, '{reference}', '{sample}.namesorted.bam')
     output: temp(join(OUT_DIR, "{reference}", "{sample}.barcoded.bam"))
     params:

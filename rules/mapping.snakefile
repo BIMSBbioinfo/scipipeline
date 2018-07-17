@@ -1,4 +1,8 @@
 
+def _bowtie_input_type_read(wildcards):
+    filename = samples[samples.Name == wildcards.sample].read1.tolist()[0]
+    return bowtie_input_filetype_option(filename)
+
 rule read_mapping:
     "Maps reads against reference genome"
     input: get_mapping_inputs
@@ -6,7 +10,7 @@ rule read_mapping:
     params:
         genome=lambda wildcards: config['reference'][wildcards.reference]['bowtie2index'],
         paired=is_paired,
-        filetype = lambda wildcards: bowtie_input_filetype_option(samples[samples.Name == wildcards.sample].read1.tolist()[0])
+        filetype=_bowtie_input_type_read
     threads: 20
     log: join(LOG_DIR, '{sample}_{reference}_bowtie2.log')
     run:
