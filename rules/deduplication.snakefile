@@ -31,7 +31,10 @@ rule index_deduplicate_split_reads:
 
 
 rule create_bigwig:
+    """Create bigwig of alignment"""
     input: join(OUT_DIR, "{reference}", "{sample}.barcoded.dedup.bam")
     output: join(OUT_DIR, "{reference}", "{sample}.barcoded.dedup.bw")
     shell:
         "bamCoverage -b {input} -o {output}"
+
+INPUT_ALL.append(expand(rules.create_bigwig.output, reference=config['reference'], sample=samples.Name.tolist()))
