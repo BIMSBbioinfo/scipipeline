@@ -14,8 +14,8 @@ def augment_alignment_by_barcode_from_name(inbam, outbam):
     where the the read name is assumed to have the form:
     @<barcodename>:<number> ...
     """
-    treatment_reader = AlignmentFile(treatment_bam, 'rb')
-    bam_writer = AlignmentFile(output_bam + '.tmp', 'wb', template=treatment_reader)
+    treatment_reader = AlignmentFile(inbam, 'rb')
+    bam_writer = AlignmentFile(outbam + '.tmp', 'wb', template=treatment_reader)
 
     barcodes = set()
     for aln in treatment_reader.fetch(until_eof=True):
@@ -30,15 +30,15 @@ def augment_alignment_by_barcode_from_name(inbam, outbam):
     bam_writer.close()
 
     # update the header with the available barcodes
-    f = AlignmentFile(output_bam + '.tmp', 'rb')
+    f = AlignmentFile(outbam + '.tmp', 'rb')
     header = f.header
     header['RG'] = [{'ID': bc} for bc in barcodes]
-    bam_writer = AlignmentFile(output_bam, 'wb', header=header)
+    bam_writer = AlignmentFile(outbam, 'wb', header=header)
     for aln in f.fetch(until_eof=True):
         bam_writer.write(aln)
 
     f.close()
-    os.remove(output_bam + '.tmp')
+    os.remove(outbam + '.tmp')
     bam_writer.close()
 
 
