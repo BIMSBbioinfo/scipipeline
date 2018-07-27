@@ -37,6 +37,7 @@ else:
 include: "rules/deduplication.snakefile"
 include: "rules/peakcalling.snakefile"
 include: "rules/countmatrix.snakefile"
+include: "rules/report.snakefile"
 
 
 #### ALL ####

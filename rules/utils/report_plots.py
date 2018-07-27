@@ -1,4 +1,5 @@
 import numpy as np
+import pysam
 import pandas as pd
 import matplotlib.pyplot as plt
 plt.switch_backend('agg')
@@ -12,6 +13,27 @@ def plot_barcode_frequencies(tab_file, plotname):
     plt.xlabel('Barcodes')
     plt.title('Barcode frequency (deduplicated)')
     f.savefig(plotname, dpi=f.dpi)
+
+
+
+def plot_fragment_size(bamin, plotname):
+    handle = pysam.AlignmentFile(bamin, 'r')
+    fragmentsize = np.zeros((2000,))
+    
+    for aln in f:
+       if not aln.is_unmapped and aln.is_read1:
+           tl = min(abs(aln.tlen), 1999)
+           fragmentsize_dist[tl] += 1
+    
+    # make a plot
+    f = plt.figure()
+    plt.plot(list(range(2000)), fragmentsize_dist)
+    plt.title('Fragment size histogram')
+    plt.xlabel('Fragment size')
+    plt.ylabel('Frequency')
+    f.savefig(plotname, dpi=f.dpi)
+
+
 
 
 def scatter_log_frequencies_per_species(tables, labels, plotname):
