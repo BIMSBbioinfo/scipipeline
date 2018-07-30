@@ -31,3 +31,17 @@ rule plot_fragment_size_dist:
         plot_fragment_size(input[0], output[0])
 
 INPUT_ALL.append(expand(rules.plot_fragment_size_dist.output, reference=config['reference'], sample=samples.Name.tolist()))
+
+
+rule make_multiqc_report:
+    input: expand(join(OUT_DIR, "{reference}", "macs2", "{sample}_summits.bed"), \
+                  reference=config['reference'], sample=samples.Name.tolist()), \
+           expand(join(OUT_DIR, 'fastqc', '{sample}'),  \
+                  reference=config['reference'], sample=samples.Name.tolist())
+    output: join(OUT_DIR, 'multiqc_report.html'), join(OUT_DIR, 'multiqc_data')
+    params: searchdir=OUT_DIR
+    shell:
+        "multiqc {params.searchdir}"
+
+INPUT_ALL.append(rules.make_multiqc_report.output)
+
