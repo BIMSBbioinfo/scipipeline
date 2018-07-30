@@ -1,5 +1,4 @@
 import os
-import h5py
 import numpy as np
 from pysam import AlignmentFile
 from pysam import view

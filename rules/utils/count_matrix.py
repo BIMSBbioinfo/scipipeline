@@ -3,7 +3,6 @@ import pandas as pd
 from scipy.sparse import dok_matrix, coo_matrix
 from pysam import AlignmentFile
 from HTSeq import BED_Reader
-import h5py
 
 def make_beds_for_intervalsize(bamfile, binsize, storage):
     """ Genome intervals for binsize.
