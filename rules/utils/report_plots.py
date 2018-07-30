@@ -18,7 +18,7 @@ def plot_barcode_frequencies(tab_file, plotname):
 
 def plot_fragment_size(bamin, plotname):
     handle = pysam.AlignmentFile(bamin, 'r')
-    fragmentsize = np.zeros((2000,))
+    fragmentsize_dist = np.zeros((2000,))
     
     for aln in handle:
        if not aln.is_unmapped and aln.is_read1:
