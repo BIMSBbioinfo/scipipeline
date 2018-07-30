@@ -182,7 +182,7 @@ def get_barcode_frequency_genomewide(bamfile, storage):
     afile.close()
 
     names = [key for key in barcodes]
-    counts = [barcodes[k] for key in barcodes]
+    counts = [barcodes[key] for key in barcodes]
 
     df = pd.DataFrame({'barcodes':names, 'counts':counts})
 
