@@ -143,6 +143,52 @@ def sparse_count_reads_in_regions(bamfile, regions, storage, flank=0,
     df.to_csv(storage, sep='\t', header=True, index=False)
 
 
+def get_barcode_frequency_genomewide(bamfile, storage):
+    """ This function obtains the barcode frequency
+    and stores it in a table.
+
+    Parameters
+    ----------
+    bamfile :  str
+        Path to a bamfile. The bamfile must be indexed.
+    storage : str
+        Path to the output hdf5 file, which contains the counts per chromsome.
+    """
+
+    # Obtain the header information
+    afile = AlignmentFile(bamfile, 'rb')
+
+    if 'RG' in afile.header:
+        use_group = True
+    else:
+        use_group = False
+
+    barcodes = {}
+    if use_group:
+        # extract barcodes
+        for idx, item in enumerate(afile.header['RG']):
+            barcodes[item['ID']] = idx
+    else:
+        barcodes['dummy'] = 0
+    print('found {} barcodes'.format(len(barcodes)))
+
+    for aln in afile.fetch(until_eof=True):
+        if aln.is_proper_pair and aln.pos < aln.next_reference_start:
+            barcodes[aln.get_tag('RG') if use_group else 'dummy'] += 1
+
+        if not aln.is_paired:
+            barcodes[aln.get_tag('RG') if use_group else 'dummy'] += 1
+
+    afile.close()
+
+    names = [key for key in barcodes]
+    counts = [barcodes[k] for key in barcodes]
+
+    df = pd.DataFrame({'barcodes':names, 'counts':counts})
+
+    df.to_csv(storage, sep='\t', header=True, index=False)
+
+
 def per_barcode_count_summary(cnt_mat, peak_counts, storage):
     df_cnt = pd.read_csv(cnt_mat, header=[0], sep='\t')
     df_peak = pd.read_csv(peak_counts, header=[0], sep='\t')

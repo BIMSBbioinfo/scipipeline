@@ -20,11 +20,13 @@ def plot_fragment_size(bamin, plotname):
     handle = pysam.AlignmentFile(bamin, 'r')
     fragmentsize = np.zeros((2000,))
     
-    for aln in f:
+    for aln in handle:
        if not aln.is_unmapped and aln.is_read1:
            tl = min(abs(aln.tlen), 1999)
            fragmentsize_dist[tl] += 1
     
+    handle.close()
+
     # make a plot
     f = plt.figure()
     plt.plot(list(range(2000)), fragmentsize_dist)
