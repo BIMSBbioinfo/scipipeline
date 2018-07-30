@@ -6,7 +6,8 @@ from pysam import view
 from collections import defaultdict
 
 
-def augment_alignment_by_barcode_from_name(inbam, outbam):
+def augment_alignment_by_barcode_from_name(inbam, outbam, offsetstart=0, 
+                                           offsetend=None):
     """
     This function takes a bam-file and outputs
     a bam-file with RG-tag representing the barcodes.
@@ -20,7 +21,9 @@ def augment_alignment_by_barcode_from_name(inbam, outbam):
     barcodes = set()
     for aln in treatment_reader.fetch(until_eof=True):
         # extract barcode between @ and the first :
-        barcode = aln.query_name.split(':')[0][1:]
+        if offsetend is None:
+            offsetend = len(aln.query_name)
+        barcode = aln.query_name[offsetstart:offsetend]
         barcodes.add(barcode)
 
         aln.set_tag('RG', barcode)
@@ -32,7 +35,7 @@ def augment_alignment_by_barcode_from_name(inbam, outbam):
     # update the header with the available barcodes
     f = AlignmentFile(outbam + '.tmp', 'rb')
     header = f.header
-    header['RG'] = [{'ID': bc} for bc in barcodes]
+    header['RG'] = [{'ID': bc, 'SM':bc} for bc in barcodes]
     bam_writer = AlignmentFile(outbam, 'wb', header=header)
     for aln in f.fetch(until_eof=True):
         bam_writer.write(aln)
@@ -165,24 +168,26 @@ def deduplicate_reads(bamin, bamout, by_rg=True):
     #barcodes = set()
     last_barcode = {}
 
-    for aln in bamfile.fetch(until_eof=True):
+    for aln in bamfile.fetch():
         # if previous hash matches the current has
         # skip the read
-        if not aln.has_tag('RG') or not by_rg:
-            val = (aln.reference_name, aln.reference_start,
-                   aln.is_reverse, aln.tlen, aln.get_tag('RG'))
+        val = (aln.reference_id, aln.reference_start,
+               aln.is_reverse, aln.tlen)
+        if aln.has_tag('RG') and by_rg:
+            rg = aln.get_tag('RG')
         else:
-            val = (aln.reference_name, aln.reference_start,
-                   aln.is_reverse, aln.tlen)
+            rg = 'dummy'
 
-        if val[:2] not in last_barcode:
-            # clear dictionary
-            last_barcode={val[:2]: set()}
-                
-        if val not in last_barcode[val[:2]]:
+        if rg not in last_barcode:
             output.write(aln)
-            # add alignment info
-            last_barcode[val[:2]].add(val)
+            # clear dictionary
+            last_barcode[rg] = val
+                
+        if val == last_barcode[rg]:
+            continue
+        else:
+            output.write(aln)
+            last_barcode[rg] = val
 
 if __name__ == '__main__':
     barcode_bams = ['pseudo_genome_I{}_sorted.bam'.format(i) for i in [1,2,3,4]]
