@@ -134,7 +134,7 @@ def split_reads_by_barcode(barcode_bams, treatment_bam,
 
     f = AlignmentFile(output_bam + '.tmp', 'rb')
     header = f.header
-    header['RG'] = [{'ID': combid} for combid in barcodes]
+    header['RG'] = [{'ID': combid, 'SM': combid} for combid in barcodes]
     bam_writer = AlignmentFile(output_bam, 'wb', header=header)
     for aln in f.fetch(until_eof=True):
         bam_writer.write(aln)
