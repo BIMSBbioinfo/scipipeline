@@ -1,9 +1,8 @@
-import numpy
+import numpy as np
 import pandas as pd
 from scipy.sparse import dok_matrix, coo_matrix
 from pysam import AlignmentFile
 from HTSeq import BED_Reader
-import h5py
 
 def make_beds_for_intervalsize(bamfile, binsize, storage):
     """ Genome intervals for binsize.
@@ -33,7 +32,6 @@ def make_beds_for_intervalsize(bamfile, binsize, storage):
         bed_content = bed_content.append(bed_entry, ignore_index=True, sort=False)
     bed_content.to_csv(storage, sep='\t', header=False, index=False,
                        columns=['chr', 'start', 'end'])
-
 
 
 
@@ -99,23 +97,24 @@ def sparse_count_reads_in_regions(bamfile, regions, storage, flank=0,
 
     sdokmat = dok_matrix((nreg, len(barcodes)), dtype='int32')
 
-    tlen = 200
+    tlen = template_length
     for idx, region in enumerate(regfile):
+            
         iv = region.iv.copy()
-        iv.start -= flank + tlen
-        iv.end += flank + tlen
+        iv.start -= flank 
+        iv.end += flank
 
-        if iv.start < tlen:
-            iv.start = tlen
-        if iv.end >= genomesize[iv.chrom] - tlen:
-            iv.end = genomesize[iv.chrom] - 1 - tlen
-        for aln in afile.fetch(iv.chrom, iv.start - tlen, iv.end + tlen):
-            if aln.is_paired and aln.is_read1:
-                # if paired end and first mate
-                if aln.pos + aln.template_length//2 >= iv.start and \
-                   aln.pos + aln.template_length//2 < iv.end:
+        fetchstart = max(iv.start - tlen, 0)
+        fetchend =  min(iv.end + tlen, genomesize[iv.chrom])
+        for aln in afile.fetch(iv.chrom, fetchstart, fetchend):
+            if aln.is_proper_pair and aln.pos < aln.next_reference_start:
+                # count paired end reads at midpoint
+                midpoint = aln.pos + aln.template_length//2
+                if midpoint >= iv.start and midpoint < iv.end:
                    sdokmat[idx, barcodes[aln.get_tag('RG') if use_group else 'dummy']] += 1
+
             if not aln.is_paired:
+                # count single-end reads at 5p end
                 if not aln.is_reverse:
                     if aln.pos >= iv.start and aln.pos < iv.end:
                         sdokmat[idx,
@@ -129,19 +128,64 @@ def sparse_count_reads_in_regions(bamfile, regions, storage, flank=0,
     afile.close()
 
     print('sparse matrix shape: {}'.format(sdokmat.shape))
-    print('density: {}'.format(sdokmat.nnz/numpy.prod(sdokmat.shape)))
+    print('density: {}'.format(sdokmat.nnz/np.prod(sdokmat.shape)))
 
     # store the results in COO sparse matrix format
-    scoomat = sdokmat.tocoo()
+    spcoo = sdokmat.tocoo()
     # sort lexicographically
 
     order_ = np.lexsort((spcoo.col, spcoo.row))
     indices = np.asarray([x for x in zip(spcoo.row, spcoo.col)], dtype=np.int64)[order_]
     values = spcoo.data.astype(np.float32)[order_]
-#    shape = np.asarray(spcoo.shape, dtype=np.int64)
     cont = {'region': indices[:,0], 'cell': indices[:, 1], 'count': values}
 
     df = pd.DataFrame(cont)
+    df.to_csv(storage, sep='\t', header=True, index=False)
+
+
+def get_barcode_frequency_genomewide(bamfile, storage):
+    """ This function obtains the barcode frequency
+    and stores it in a table.
+
+    Parameters
+    ----------
+    bamfile :  str
+        Path to a bamfile. The bamfile must be indexed.
+    storage : str
+        Path to the output hdf5 file, which contains the counts per chromsome.
+    """
+
+    # Obtain the header information
+    afile = AlignmentFile(bamfile, 'rb')
+
+    if 'RG' in afile.header:
+        use_group = True
+    else:
+        use_group = False
+
+    barcodes = {}
+    if use_group:
+        # extract barcodes
+        for idx, item in enumerate(afile.header['RG']):
+            barcodes[item['ID']] = idx
+    else:
+        barcodes['dummy'] = 0
+    print('found {} barcodes'.format(len(barcodes)))
+
+    for aln in afile.fetch(until_eof=True):
+        if aln.is_proper_pair and aln.pos < aln.next_reference_start:
+            barcodes[aln.get_tag('RG') if use_group else 'dummy'] += 1
+
+        if not aln.is_paired:
+            barcodes[aln.get_tag('RG') if use_group else 'dummy'] += 1
+
+    afile.close()
+
+    names = [key for key in barcodes]
+    counts = [barcodes[k] for key in barcodes]
+
+    df = pd.DataFrame({'barcodes':names, 'counts':counts})
+
     df.to_csv(storage, sep='\t', header=True, index=False)
 
 
@@ -155,3 +199,9 @@ def per_barcode_count_summary(cnt_mat, peak_counts, storage):
     per_bc_count['percent_in_peaks'] = per_bc_count.apply(lambda row: row['count_in_peaks']/row['count'])
 
     per_bc_count.to_csv(storage, sep='\t')
+
+if __name__ == '__main__':
+  regions = '../../scipipe_output/dm3/countmatrix/atac_bin_1000.bed'
+  in_ = '../../scipipe_output/dm3/atac.barcoded.dedup.bam'
+  out = '../../scipipe_output/dm3/countmatrix/atac_bin_1000.tab'
+  sparse_count_reads_in_regions(in_, regions, out, flank=0)

@@ -1,83 +1,33 @@
 from os.path import join
 
 from utils.report_plots import plot_barcode_frequencies
-from utils.report_plots import species_specificity
-from utils.report_plots import scatter_log_frequencies_per_species
-from utils.report_plots import scatter_frequencies_per_species_colored
-from utils.report_plots import density_frequencies_per_species_colored
+from utils.report_plots import plot_fragment_size
+from utils.count_matrix import get_barcode_frequency_genomewide
 
-# Reference genome and mapping index
-BAM_SORTED = join(OUT_DIR, '{reference}', 'atac_sorted.bam')
+
+rule determine_barcode_frequencies:
+    input: join(OUT_DIR, "{reference}", "{sample}.barcoded.dedup.bam")
+    output: join(OUT_DIR, "{reference}", "report", "barcode_frequencies.{sample}.tab")
+    run:
+        get_barcode_frequency_genomewide(input[0], output[0])
 
 
 # ------------------------ #
 #
 rule plot_barcode_freqs:
     """Plot barcode frequency"""
-    input: join(OUT_DIR, "report", "barcode_frequencies.{reference}.tab")
-    output: join(OUT_DIR, "report", "barcode_frequencies_{reference}.png")
+    input: join(OUT_DIR, "{reference}", "report", "barcode_frequencies.{sample}.tab")
+    output: report(join(OUT_DIR, "{reference}", "report", "barcode_frequencies.{sample}.svg"))
     run:
         plot_barcode_frequencies(input[0], output[0])
 
-INPUT_ALL.append(expand(rules.plot_barcode_freqs.output, reference=config['reference']))
+INPUT_ALL.append(expand(rules.plot_barcode_freqs.output, reference=config['reference'], sample=samples.Name.tolist()))
 
-
-# ------------------------ #
-#
-rule read_cooccurrence_by_species:
-    """How frequently do reads map uniquely to one species or to both?"""
-    input: expand(BAM_SORTED, reference=config['reference'])
-    output: expand(join(OUT_DIR, "report", "read_cooccurrence.{suffix}"), suffix=['tab', 'png'])
+rule plot_fragment_size_dist:
+    """Plot fragment size distribution"""
+    input: join(OUT_DIR, "{reference}", "{sample}.barcoded.dedup.bam")
+    output: report(join(OUT_DIR, "{reference}", "{sample}.fragmentsize.svg"))
     run:
-        species_specificity(input[0], input[1], output[0].split('.')[0], expand('{reference}', reference=config['reference']))
+        plot_fragment_size(input[0], output[0])
 
-INPUT_ALL.append(rules.read_cooccurrence_by_species.output)
-
-# ------------------------ #
-#
-rule scatterplot_barcode_logfreqs:
-    """Plot barcode frequency"""
-    input: 
-        tables = expand(join(OUT_DIR, "report", 
-           "barcode_frequencies.{reference}.tab"), reference=config['reference']),
-    params:
-        names = expand('{reference}', reference=config['reference'])
-
-    output: join(OUT_DIR, "report", "barcode_log_frequencies_scatter.png")
-    run:
-        scatter_log_frequencies_per_species(input.tables, params.names, output[0])
-
-INPUT_ALL.append(rules.scatterplot_barcode_logfreqs.output)
-
-# ------------------------ #
-#
-rule scatterplot_barcode_freqs:
-    """Plot barcode frequency"""
-    input: 
-        tables = expand(join(OUT_DIR, "report", 
-           "barcode_frequencies.{reference}.tab"), reference=config['reference']),
-    params:
-        names = expand('{reference}', reference=config['reference'])
-
-    output: join(OUT_DIR, "report", "barcode_frequencies_scatter.png")
-    run:
-        scatter_frequencies_per_species_colored(input.tables, params.names, output[0])
-
-INPUT_ALL.append(rules.scatterplot_barcode_freqs.output)
-
-# ------------------------ #
-#
-rule density_barcode_freqs:
-    """Plot barcode frequency"""
-    input: 
-        tables = expand(join(OUT_DIR, "report", 
-           "barcode_frequencies.{reference}.tab"), reference=config['reference']),
-    params:
-        names = expand('{reference}', reference=config['reference'])
-
-    output: join(OUT_DIR, "report", "barcode_frequencies_density.png")
-    run:
-        density_frequencies_per_species_colored(input.tables, params.names, output[0])
-
-INPUT_ALL.append(rules.density_barcode_freqs.output)
-
+INPUT_ALL.append(expand(rules.plot_fragment_size_dist.output, reference=config['reference'], sample=samples.Name.tolist()))
