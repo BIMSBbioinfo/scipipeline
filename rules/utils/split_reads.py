@@ -1,28 +1,49 @@
 import os
 import numpy as np
+import pandas as pd
 from pysam import AlignmentFile
 from pysam import view
 from collections import defaultdict
 
 
-def augment_alignment_by_barcode_from_name(inbam, outbam, offsetstart=0, 
-                                           offsetend=None):
+def augment_alignment_by_barcode_from_name(inbam, outbam, reftable):
     """
     This function takes a bam-file and outputs
     a bam-file with RG-tag representing the barcodes.
-    The barcodes are extracted from the read name
+
+    The barcodes are encoded by the read name
     where the the read name is assumed to have the form:
     @<barcodename>:<number> ...
+
+    The barcode name from the read is then used to look up
+    the corresponding barcode name from a reference table
+    that has the form
+    
+    > cat barcodesheet.tsv
+    readpre1    cell1
+    readpre2    cell2
+
+    Therefore, for a the read @readpre1:12312 the corresponding
+    RGID would be cell1.
+
+    Importantly, the readprefixes that encode the barcode in the
+    read names must be equally long!
     """
+
+    # load mapping between read name prefix and barcode
+    refs = pd.read_csv(reftable, sep='\t', header=None, names=['readprefix', 'barcode'])
+    # obtain the prefix length and check if it is the same 
+    # for all entries
+    reflen = len(refs['readprefix'][0])
+
     treatment_reader = AlignmentFile(inbam, 'rb')
     bam_writer = AlignmentFile(outbam + '.tmp', 'wb', template=treatment_reader)
 
     barcodes = set()
     for aln in treatment_reader.fetch(until_eof=True):
         # extract barcode between @ and the first :
-        if offsetend is None:
-            offsetend = len(aln.query_name)
-        barcode = aln.query_name[offsetstart:offsetend]
+        refprefix = aln.query_name[:reflen]
+        barcode = refs[refs.readprefix == refprefix]['barcode'].iloc[0]
         barcodes.add(barcode)
 
         aln.set_tag('RG', barcode)

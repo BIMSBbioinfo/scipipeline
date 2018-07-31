@@ -20,8 +20,7 @@ LOG_DIR = os.path.join(OUT_DIR, "logs")
 INPUT_ALL = []
 
 samples = pd.read_table(config["samples"])
-if 'barcodes' in config:
-    barcodes = pd.read_table(config['barcodes'])
+barcodes = pd.read_table(config['barcodes']['sheet'])
 
 
 ############ BEGIN PIPELINE RULES ############
@@ -30,9 +29,11 @@ include: "rules/atac.snakefile"
 include: "rules/trim.snakefile"
 include: "rules/fastqc.snakefile"
 include: "rules/mapping.snakefile"
-if 'barcodes' in config:
+if config['barcodes']['correction']:
+  # for barcode correction, invoke this sub-workflow
   include: "rules/combinatorialindexing.snakefile"
 else:
+  # no barcode correction
   include: "rules/barcodebyname.snakefile"
 include: "rules/deduplication.snakefile"
 include: "rules/peakcalling.snakefile"
