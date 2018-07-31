@@ -1,16 +1,16 @@
 name: scATAC
 
 samples: "./samplesheet.tsv"
-barcodes: "./barcodesheet.tsv"
-
+barcodes:
+    sheet: "./barcodesheet.tsv"
+    correction: True
+    min_mapq: 5
+    max_mismatch: 2
 
 # Specify whether the reads should be trimmmed
 trim_reads: True
 # adapters to eliminate with flexbar
 adapters: /data/ohler/Scott/Asli_Scripts/sciAtacAdapters.fa
-
-min_mapq: 5
-max_mismatch: 2
 
 # reference genomes to map against
 # the paths should point to the respective bowtie2 indices
