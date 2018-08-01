@@ -111,8 +111,9 @@ def remove_low_cellcount_reads(inbam, outbam, mincount):
     # alignment counts
 
     for aln in treatment.fetch(until_eof=True):
-        rg = aln.get_tag('RG')
-        barcodecounts[rg] += 1
+        if aln.is_proper_pair and aln.is_read1 or not aln.is_paired:
+            rg = aln.get_tag('RG')
+            barcodecounts[rg] += 1
 
     treatment.close()
 
