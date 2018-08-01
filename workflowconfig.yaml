@@ -18,9 +18,11 @@ reference:
   dm6:
     bowtie2index: /data/akalin/wkopp/bowtie2_indices/dm6/dm6
     macs_gsize: dm
+    removechroms: [chrM, _random, chrUn]
   danrer10:
     bowtie2index: /data/akalin/wkopp/bowtie2_indices/danrer10/danrer10
     macs_gsize: dm
+    removechroms: [chrM, _random, chrUn]
 
 
 # binsizes to bin the reference genome
