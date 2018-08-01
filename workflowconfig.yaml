@@ -15,6 +15,8 @@ adapters: /data/ohler/Scott/Asli_Scripts/sciAtacAdapters.fa
 # reference genomes to map against
 # the paths should point to the respective bowtie2 indices
 reference:
+  min_mapq: 0
+  min_counts_per_barcode: 0
   dm6:
     bowtie2index: /data/akalin/wkopp/bowtie2_indices/dm6/dm6
     macs_gsize: dm
