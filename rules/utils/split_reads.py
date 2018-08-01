@@ -31,10 +31,13 @@ def augment_alignment_by_barcode_from_name(inbam, outbam, reftable):
     """
 
     # load mapping between read name prefix and barcode
-    refs = pd.read_csv(reftable, sep='\t', header=None, names=['readprefix', 'barcode'])
+    refs = pd.read_csv(reftable, sep='\t', header=[0])
     # obtain the prefix length and check if it is the same 
     # for all entries
-    reflen = len(refs['readprefix'][0])
+    reflen = len(refs['Readprefix'][0])
+    rmap = {}
+    for row in refs.iterrows():
+        rmap[row[1].Readprefix] = row[1].Name
 
     treatment_reader = AlignmentFile(inbam, 'rb')
     bam_writer = AlignmentFile(outbam + '.tmp', 'wb', template=treatment_reader)
@@ -43,7 +46,7 @@ def augment_alignment_by_barcode_from_name(inbam, outbam, reftable):
     for aln in treatment_reader.fetch(until_eof=True):
         # extract barcode between @ and the first :
         refprefix = aln.query_name[:reflen]
-        barcode = refs[refs.readprefix == refprefix]['barcode'].iloc[0]
+        barcode = rmap[refprefix]
         barcodes.add(barcode)
 
         aln.set_tag('RG', barcode)
