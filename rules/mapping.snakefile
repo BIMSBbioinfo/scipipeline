@@ -1,4 +1,4 @@
-from utils.remove_chroms import remove_chroms
+from utils.cleanup_alignments import remove_chroms
 
 def _bowtie_input_type_read(wildcards):
     filename = samples[samples.Name == wildcards.sample].read1.tolist()[0]

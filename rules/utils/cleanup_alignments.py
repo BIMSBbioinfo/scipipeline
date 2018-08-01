@@ -43,3 +43,93 @@ def remove_chroms(inbam, outbam, chroms):
     treatment.close()
     bam_writer.close()
 
+
+def remove_low_mapq_reads(inbam, outbam, minmapq):
+    """
+    This function takes a bam file and it produces
+    a new bam file with aligments with a minimum
+    mapping quality.
+
+    For paired-end data, only alignments where
+    both mates exceed the threshold are retained.
+    """
+
+    treatment = AlignmentFile(inbam, 'rb')
+    bam_writer = AlignmentFile(outbam, 'wb', template=treatment)
+
+    waiting_for_pair = {}
+    for aln in treatment.fetch(until_eof=True):
+        if aln.is_paired:
+            if aln.rname not in waiting_for_pair:
+                # for the first mate that we encounter
+                # we get here and keep the aln in the waiting list
+                # if it is valid
+                if aln.mapq >= minmapq:
+                    waiting_for_pair[aln.rname] = aln
+                else:
+                    waiting_for_pair[aln.rname] = None
+                continue
+            if aln.rname in waiting_for_pair:
+                # for the second mate that we encounter
+                # we get here
+                if waiting_for_pair[aln.rname] is None:
+                    # first pair was of low quality
+                    waiting_for_pair.pop(aln.rname)
+                    continue
+                
+                if aln.mapq >= minmapq:
+                    # both pairs satisfy the min mapq threshold
+                    # write them into the output file
+                    bam_writer.write(waiting_for_pair[aln.rname])
+                    bam_writer.write(aln)
+                
+                # finally clear the waiting list to save memory
+                waiting_for_pair.pop(aln.rname)
+                    
+        else:
+            # single end
+            if aln.maqp >= minmapq:
+                bam_writer.write(aln)
+    
+    treatment.close()
+    bam_writer.close()
+
+
+def remove_low_cellcount_reads(inbam, outbam, mincount):
+    """
+    This function takes a bam file with barcodes in the 
+    RG tag as input and outputs a bam file containing
+    only barcodes that exceed the minimum number of aligments
+    for a given barcode.
+
+    """
+    treatment = AlignmentFile(inbam, 'rb')
+    header = treatment.header
+    barcodecounts = {bc['ID']: 0 for bc in header['RG']}
+
+    # first parse the file to determine the per barcode
+    # alignment counts
+
+    for aln in treatment.fetch(until_eof=True):
+        rg = aln.get_tag('RG')
+        barcodecounts[rg] += 1
+
+    treatment.close()
+
+    # make new header with the valid barcodes
+    treatment = AlignmentFile(inbam, 'rb')
+    header = treatment.header
+    rgheader = []
+    for rg in header['RG']:
+       if barcodecounts[rg['ID']] >= mincount:
+           rgheader.append(rg)
+
+    header['RG'] = rgheader
+    
+    bam_writer = AlignmentFile(output_bam, 'wb', header=header)
+    for aln in f.fetch(until_eof=True):
+        if barcodecounts[aln.get_tag('RG')] >= mincount:
+            bam_writer.write(aln)
+
+    treatment.close()
+    bam_writer.close()
