@@ -18,7 +18,7 @@ def remove_chroms(inbam, outbam, chroms):
     treatment = AlignmentFile(inbam, 'rb')
 
     header = treatment.header
-    new_header = []
+    new_chroms = []
     chrnames = []
     # make new header with valid chromsomes
     for seq in header['SQ']:
@@ -37,6 +37,8 @@ def remove_chroms(inbam, outbam, chroms):
 
     # write new bam files containing only valid chromosomes
     for aln in treatment.fetch(until_eof=True):
+        if aln.is_unmapped:
+            continue
         if aln.reference_name in chrnames:
             bam_writer.write(aln)
         
@@ -127,8 +129,8 @@ def remove_low_cellcount_reads(inbam, outbam, mincount):
 
     header['RG'] = rgheader
     
-    bam_writer = AlignmentFile(output_bam, 'wb', header=header)
-    for aln in f.fetch(until_eof=True):
+    bam_writer = AlignmentFile(outbam, 'wb', header=header)
+    for aln in treatment.fetch(until_eof=True):
         if barcodecounts[aln.get_tag('RG')] >= mincount:
             bam_writer.write(aln)
 

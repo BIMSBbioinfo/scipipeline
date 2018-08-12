@@ -5,10 +5,12 @@
 
 rule make_counting_bins:
     input:
-        bams = join(OUT_DIR, "{reference}", "{sample}.barcoded.dedup.bam"),
-        bai = join(OUT_DIR, "{reference}", "{sample}.barcoded.dedup.bam.bai")
+        bams = join(OUT_DIR, "{reference}", "{sample}.barcoded.minmapq{minmapq}.dedup.mincount{mincounts}.bam"),
+        bai = join(OUT_DIR, "{reference}", "{sample}.barcoded.minmapq{minmapq}.dedup.mincount{mincounts}.bam.bai")
     output:
-        bins = join(OUT_DIR, '{reference}', 'countmatrix', '{sample}_bin_{binsize}.bed')
+        bins = join(OUT_DIR, '{reference}', 'countmatrix', '{sample}_bin_{binsize}_minmapq{minmapq}_mincount{mincounts}.bed')
+    wildcard_constraints:
+       minmapq='\d+', mincounts='\d+'
     run:
         make_beds_for_intervalsize(input.bams, int(wildcards.binsize), output.bins)
 
@@ -16,11 +18,13 @@ rule make_counting_bins:
 rule counting_reads_in_bins:
     """Counting reads per barcode"""
     input:
-        bams = join(OUT_DIR, "{reference}", "{sample}.barcoded.dedup.bam"),
-        bai = join(OUT_DIR, "{reference}", "{sample}.barcoded.dedup.bam.bai"),
-        bins = join(OUT_DIR, '{reference}', 'countmatrix', '{sample}_bin_{binsize}.bed')
+        bams = join(OUT_DIR, "{reference}", "{sample}.barcoded.minmapq{minmapq}.dedup.mincount{mincounts}.bam"),
+        bai = join(OUT_DIR, "{reference}", "{sample}.barcoded.minmapq{minmapq}.dedup.mincount{mincounts}.bam.bai"),
+        bins = join(OUT_DIR, '{reference}', 'countmatrix', '{sample}_bin_{binsize}_minmapq{minmapq}_mincount{mincounts}.bed')
     output:
-        countmatrix = join(OUT_DIR, '{reference}', 'countmatrix', '{sample}_bin_{binsize}.tab')
+        countmatrix = join(OUT_DIR, '{reference}', 'countmatrix', '{sample}_bin_{binsize}_minmapq{minmapq}_mincount{mincounts}.tab')
+    wildcard_constraints:
+       minmapq='\d+', mincounts='\d+'
     run:
         sparse_count_reads_in_regions(input.bams, input.bins, output.countmatrix, flank=0)
 
@@ -28,7 +32,9 @@ rule counting_reads_in_bins:
 INPUT_ALL.append(expand(rules.counting_reads_in_bins.output,
                         reference=config['reference'],
                         binsize=config['binsize'],
-                        sample=samples.Name.tolist()))
+                        sample=samples.Name.tolist(),
+                        minmapq=config['min_mapq'],
+                        mincounts=config['min_counts_per_barcode']))
 
 # ------------------------- #
 # Count reads in regions
@@ -36,14 +42,18 @@ INPUT_ALL.append(expand(rules.counting_reads_in_bins.output,
 rule counting_reads_in_peaks:
     """Counting reads per barcode"""
     input:
-        bams = join(OUT_DIR, "{reference}", "{sample}.barcoded.dedup.bam"),
-        bai = join(OUT_DIR, "{reference}", "{sample}.barcoded.dedup.bam.bai"),
-        regions = join(OUT_DIR, "{reference}", "macs2", "{sample}_summits.bed")
-    output: join(OUT_DIR, '{reference}', 'countmatrix', '{sample}_peak_counts_flank_{flank}.tab')
+        bams = join(OUT_DIR, "{reference}", "{sample}.barcoded.minmapq{minmapq}.dedup.mincount{mincounts}.bam"),
+        bai = join(OUT_DIR, "{reference}", "{sample}.barcoded.minmapq{minmapq}.dedup.mincount{mincounts}.bam.bai"),
+        regions = join(OUT_DIR, "{reference}", "macs2", "{sample}.minmapq{minmapq}.mincount{mincounts}_summits.bed")
+    output: join(OUT_DIR, '{reference}', 'countmatrix', '{sample}_peak_counts_flank_{flank}_minmapq{minmapq}_mincount{mincounts}.tab')
+    wildcard_constraints:
+       minmapq='\d+', mincounts='\d+'
     run: sparse_count_reads_in_regions(input.bams, input.regions, output[0], flank=int(wildcards.flank))
 
 
 INPUT_ALL.append(expand(rules.counting_reads_in_peaks.output,
                         reference=config['reference'],
                         sample=samples.Name.tolist(),
-                        flank=config['peak_flank']))
+                        flank=config['peak_flank'],
+                        minmapq=config['min_mapq'],
+                        mincounts=config['min_counts_per_barcode']))
