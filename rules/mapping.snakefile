@@ -7,7 +7,8 @@ def _bowtie_input_type_read(wildcards):
 rule read_mapping:
     "Maps reads against reference genome"
     input: get_mapping_inputs
-    output: join(OUT_DIR, '{reference}', '{sample}.raw.bam')
+    output: join(OUT_DIR, '{reference}', '{sample}.bam')
+    wildcard_constraints: sample='\w+'
     params:
         genome=lambda wildcards: config['reference'][wildcards.reference]['bowtie2index'],
         paired=is_paired,
@@ -31,10 +32,10 @@ rule read_mapping:
 INPUT_ALL.append(expand(rules.read_mapping.output, sample=samples.Name.tolist(), reference=config['reference']))
 
 rule remove_chromosomes:
-    input: join(OUT_DIR, '{reference}', '{sample}.raw.bam')
-    output: join(OUT_DIR, '{reference}', '{sample}.bam')
+    input: join(OUT_DIR, '{reference}', '{sample}.bam')
+    output: join(OUT_DIR, '{reference}', '{sample}.cleanchrom.bam')
     params: chroms = lambda wc: config['reference'][wc.reference]['removechroms']
     run:
-        remove_chroms(input[0], output[1], params.chroms)
+        remove_chroms(input[0], output[0], params.chroms)
 
 INPUT_ALL.append(expand(rules.remove_chromosomes.output, sample=samples.Name.tolist(), reference=config['reference']))
