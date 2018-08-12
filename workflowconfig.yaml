@@ -8,7 +8,7 @@ barcodes:
     max_mismatch: 2
 
 # Specify whether the reads should be trimmmed
-trim_reads: True
+trim_reads: trim_galore
 # adapters to eliminate with flexbar
 adapters: /data/ohler/Scott/Asli_Scripts/sciAtacAdapters.fa
 
