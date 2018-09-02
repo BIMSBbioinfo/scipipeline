@@ -28,7 +28,7 @@ INPUT_ALL.append(expand(rules.plot_barcode_freqs.output, reference=config['refer
 rule plot_fragment_size_dist:
     """Plot fragment size distribution"""
     input: join(OUT_DIR, "{reference}", "{sample}.barcoded.minmapq{minmapq}.dedup.mincount{mincounts}.bam")
-    output: report(join(OUT_DIR, "{reference}", "{sample}.fragmentsize_minmapq{minmapq}_mincount{mincounts}.svg"))
+    output: report(join(OUT_DIR, "{reference}", "report", "{sample}.fragmentsize_minmapq{minmapq}_mincount{mincounts}.svg"))
     run:
         plot_fragment_size(input[0], output[0])
 
@@ -46,10 +46,10 @@ rule make_multiqc_report:
                   sample=samples.Name.tolist(), \
                   minmapq=config['min_mapq'], \
                   mincounts=config['min_counts_per_barcode'])
-    output: join(OUT_DIR, 'multiqc_report.html'), join(OUT_DIR, 'multiqc_data')
+    output: join(OUT_DIR, 'multiqc_report.html'), directory(join(OUT_DIR, 'multiqc_data'))
     params: searchdir=OUT_DIR
     shell:
-        "multiqc {params.searchdir}"
+        "multiqc --outdir {params.searchdir} {params.searchdir}"
 
 INPUT_ALL.append(rules.make_multiqc_report.output)
 
