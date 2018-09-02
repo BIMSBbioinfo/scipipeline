@@ -76,21 +76,17 @@ def remove_low_mapq_reads(inbam, outbam, minmapq):
                 # for the first mate that we encounter
                 # we get here and keep the aln in the waiting list
                 # if it is valid
-                if aln.mapq >= minmapq:
+                if aln.mapq >= minmapq and not aln.is_unmapped:
                     waiting_for_pair[aln.rname] = aln
                 else:
                     waiting_for_pair[aln.rname] = None
-                continue
-            if aln.rname in waiting_for_pair:
+            else:
                 # for the second mate that we encounter
                 # we get here
-                if waiting_for_pair[aln.rname] is None:
-                    # first pair was of low quality
-                    waiting_for_pair.pop(aln.rname)
-                    continue
-                
-                if aln.mapq >= minmapq:
+                if aln.mapq >= minmapq and not aln.is_unmapped \
+                   and waiting_for_pair[aln.rname] is not None:
                     # both pairs satisfy the min mapq threshold
+                    # and are mapped.
                     # write them into the output file
                     bam_writer.write(waiting_for_pair[aln.rname])
                     bam_writer.write(aln)
