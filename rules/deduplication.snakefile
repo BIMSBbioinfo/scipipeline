@@ -55,13 +55,58 @@ rule deduplicate_split_reads_by_barcode:
     """Deduplicate split reads"""
     input: join(OUT_DIR, "{reference}", "{sample}.barcoded.minmapq{minmapq}.sorted.bam"), \
            join(OUT_DIR, "{reference}", "{sample}.barcoded.minmapq{minmapq}.sorted.bam.bai")
-    output: join(OUT_DIR, "{reference}", "{sample}.barcoded.minmapq{minmapq}.dedup.bam")
+    output: outbam=join(OUT_DIR, "{reference}", "{sample}.barcoded.minmapq{minmapq}.dedup.bam"), \
+       summary=join(OUT_DIR, "{reference}", "report", "markdup_metrics.{sample}.minmap{minmapq}.bam")
+    params: picard=config['picard_jarpath']
+    threads: 20
+    log: join(LOG_DIR, 'picard_markduplicates_{sample}_{reference}_minmap{minmapq}.log')
     wildcard_constraints:
        minmapq='\d+'
-    run:
-        deduplicate_reads(input[0], output[0])
+    shell:
+        "java -jar {params.picard} MarkDuplicates -I={input[0]} -O={output.outbam} -M={output.summary} BARCODE_TAG=RG REMOVE_DUPLICATES=true 2> {log}"
 
 INPUT_ALL.append(expand(rules.deduplicate_split_reads_by_barcode.output, 
+                        reference=config['reference'], 
+                        sample=samples.Name.tolist(),
+                        minmapq=config['min_mapq']))
+
+
+# ------------------------- #
+# Measure library complexity before deduplication
+
+rule library_complexity_before_dedup:
+    """Deduplicate split reads"""
+    input: join(OUT_DIR, "{reference}", "{sample}.barcoded.minmapq{minmapq}.sorted.bam")
+    output: join(OUT_DIR, "{reference}", "report", "library_complexity_beforededup.{sample}.minmap{minmapq}.txt")
+    params: picard=config['picard_jarpath']
+    threads: 20
+    log: join(LOG_DIR, 'picard_estlibcompl_beforededup_{sample}_{reference}_minmapq{minmapq}.log')
+    wildcard_constraints:
+       minmapq='\d+'
+    shell:
+        "java -jar {params.picard} EstimateLibraryComplexity I={input} O={output} 2> {log}"
+
+INPUT_ALL.append(expand(rules.library_complexity_before_dedup.output, 
+                        reference=config['reference'], 
+                        sample=samples.Name.tolist(),
+                        minmapq=config['min_mapq']))
+
+# ------------------------- #
+# Measure library complexity after deduplication
+
+rule library_complexity_after_dedup:
+    """Deduplicate split reads"""
+    input: join(OUT_DIR, "{reference}", "{sample}.barcoded.minmapq{minmapq}.dedup.bam")
+    output: join(OUT_DIR, "{reference}", "report", "library_complexity_afterdedup.{sample}.minmap{minmapq}.txt")
+    params: picard=config['picard_jarpath']
+    threads: 20
+    log: join(LOG_DIR, 'picard_estlibcompl_afterdedup_{sample}_{reference}_minmapq{minmapq}.log')
+    wildcard_constraints:
+       minmapq='\d+'
+    shell:
+        "java -jar {params.picard} EstimateLibraryComplexity I={input} O={output} 2> {log}"
+
+INPUT_ALL.append(expand(rules.library_complexity_after_dedup.output, 
                         reference=config['reference'], 
                         sample=samples.Name.tolist(),
                         minmapq=config['min_mapq']))
