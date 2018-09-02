@@ -17,7 +17,7 @@ rule determine_barcode_frequencies:
 rule plot_barcode_freqs:
     """Plot barcode frequency"""
     input: join(OUT_DIR, "{reference}", "report", "barcode_frequencies.{sample}.minmapq{minmapq}.mincount{mincounts}.tab")
-    output: report(join(OUT_DIR, "{reference}", "report", "barcode_frequencies.{sample}.minmapq{minmapq}.mincount{mincounts}.svg"))
+    output: report(join(OUT_DIR, "{reference}", "report", "barcode_frequencies.{sample}.minmapq{minmapq}.mincount{mincounts}.svg"), category="Barcode frequency")
     run:
         plot_barcode_frequencies(input[0], output[0])
 
@@ -28,7 +28,7 @@ INPUT_ALL.append(expand(rules.plot_barcode_freqs.output, reference=config['refer
 rule plot_fragment_size_dist:
     """Plot fragment size distribution"""
     input: join(OUT_DIR, "{reference}", "{sample}.barcoded.minmapq{minmapq}.dedup.mincount{mincounts}.bam")
-    output: report(join(OUT_DIR, "{reference}", "report", "{sample}.fragmentsize_minmapq{minmapq}_mincount{mincounts}.svg"))
+    output: report(join(OUT_DIR, "{reference}", "report", "{sample}.fragmentsize_minmapq{minmapq}_mincount{mincounts}.svg"), category="Fragment size distribution")
     run:
         plot_fragment_size(input[0], output[0])
 
