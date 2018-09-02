@@ -6,12 +6,12 @@ plt.switch_backend('agg')
 import seaborn as sns
 
 def plot_barcode_frequencies(tab_file, plotname):
-    x=pd.read_csv(tab_file,sep='\t')
+    x=pd.read_csv(tab_file, sep='\t')
     f = plt.figure()
-    plt.plot(np.log10(x['deduplicated'].sort_values(ascending=False).values//2))
-    plt.ylabel('Log10(# pairs)')
+    plt.plot(np.log10(x['counts'].sort_values(ascending=False).values//2))
+    plt.ylabel('Log10(# fragments)')
     plt.xlabel('Barcodes')
-    plt.title('Barcode frequency (deduplicated)')
+    plt.title('Barcode frequency')
     f.savefig(plotname, dpi=f.dpi)
 
 
