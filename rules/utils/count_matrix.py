@@ -34,6 +34,35 @@ def make_beds_for_intervalsize(bamfile, binsize, storage):
                        columns=['chr', 'start', 'end'])
 
 
+def make_barcode_table(inbam, barcodetable):
+    """ This function creates a table of barcodes derived
+    from the bam-file's header.
+
+    Parameters
+    ----------
+    inbam : str
+        Path to input bam file.
+    barcodetable : str
+        Output path to barcode table.
+    """
+
+    afile = AlignmentFile(bamfile, 'rb')
+
+    if 'RG' in afile.header:
+        use_group = True
+    else:
+        use_group = False
+
+    if use_group:
+        # extract barcodes
+        barcodes = [item['ID'] for item in afile.header['RG']]
+    else:
+        barcodes = ['dummy']
+
+    df = pd.DataFrame({'barcodes':barcodes})
+
+    df.to_csv(barcodetable, sep='\t', header=True, index=True)
+
 
 def sparse_count_reads_in_regions(bamfile, regions, storage, flank=0,
                                   template_length=1000):

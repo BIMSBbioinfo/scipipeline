@@ -1,7 +1,7 @@
 
 
 # ------------------------- #
-# Count reads in bins
+# Create counting bed files
 
 rule make_counting_bins:
     input:
@@ -14,6 +14,21 @@ rule make_counting_bins:
     run:
         make_beds_for_intervalsize(input.bams, int(wildcards.binsize), output.bins)
 
+
+# ------------------------- #
+# Barcode-table
+
+rule make_barcode_table:
+    input:
+        bams = join(OUT_DIR, "{reference}", "{sample}.barcoded.bam"),
+    output:
+        barcodes = join(OUT_DIR, '{reference}', 'countmatrix', '{sample}_barcodes.tsv')
+    run:
+        make_barcode_table(input.bams, output.barcodes)
+
+
+# ------------------------- #
+# Count reads in bins
 
 rule counting_reads_in_bins:
     """Counting reads per barcode"""

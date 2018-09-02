@@ -7,6 +7,7 @@ from utils.split_reads import split_reads_by_barcode
 from utils.split_reads import deduplicate_reads
 from utils.count_matrix import make_beds_for_intervalsize
 from utils.count_matrix import sparse_count_reads_in_regions
+from utils.count_matrix import make_barcode_table
 
 
 PSGENOME_OUTDIR = join(OUT_DIR, 'barcodes')
