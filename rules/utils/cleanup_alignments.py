@@ -20,30 +20,40 @@ def remove_chroms(inbam, outbam, chroms):
     header = treatment.header
     new_chroms = []
     chrnames = []
+
+    # tid_map is to reindex the chromosomes in the
+    # new bam file.
+    tid_map = [-1 for i in range(len(header['SQ']))]
+
+    N = 0
     # make new header with valid chromsomes
-    for seq in header['SQ']:
+    for i, seq in enumerate(header['SQ']):
         keep = True
         for chrom in chroms:
             if chrom in seq['SN']:
                 keep = False
                 break
         if keep:
+            tid_map[i] = N
+            N += 1
             new_chroms.append(seq)
             chrnames.append(seq['SN'])
 
     header['SQ'] = new_chroms
 
     bam_writer = AlignmentFile(outbam, 'wb', header=header)
+#    bam_writer = AlignmentFile(outbam, 'wb', template=treatment)
 
     # write new bam files containing only valid chromosomes
     for aln in treatment.fetch(until_eof=True):
         if aln.is_unmapped:
             continue
         if aln.reference_name in chrnames:
+            aln.tid = tid_map[aln.tid]
             bam_writer.write(aln)
         
-    treatment.close()
     bam_writer.close()
+    treatment.close()
 
 
 def remove_low_mapq_reads(inbam, outbam, minmapq):
