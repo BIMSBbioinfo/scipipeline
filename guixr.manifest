@@ -17,6 +17,7 @@
                    "multiqc"
                    "glibc-locales"
                    "fastqc"
+                   "trim-galore"
                    "flexbar"))
 
 ;; Turn the list of package names into a manifest
