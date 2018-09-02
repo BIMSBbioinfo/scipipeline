@@ -41,3 +41,6 @@ peak_flank:
 
 # output directory
 output_dir: /data/akalin/wkopp/sciatac_data/
+
+# this is the path to the java-based tool picard
+picard_jarpath: /data/akalin/wkopp/picard/build/libs/picard.jar
