@@ -29,20 +29,43 @@ def get_trim_inputs(wildcards):
     return in_
 
 
-def get_mapping_inputs(wildcards):
+def get_trimgalore_outputfilename(filename, extension):
+    """Rename the original filename to get the
+       trimgalore filename."""
+    if filename.endswith('.fq') or filename.endswith('.fastq'):
+        in_ = splitext(os.path.basename(filename))[0]
+        in_ += extension + '.fq.gz'
+    elif filename.endswith('.fq.gz') or filename.endswith('.fastq.gz'):
+        filename = splitext(filename)[0] 
+        in_ = splitext(os.path.basename(filename))[0]
+        in_ += extension + '.fq.gz'
+    return in_
 
-    if not config['trim_reads']:
-        # trimming is not required.
-        # the raw reads will be passed to the mapper
-        # directly
-        return get_trim_inputs(wildcards)
+
+def get_trimgalore_output(wildcards):
+    sam = samples[samples.Name == wildcards.sample]
+
+    if is_paired(wildcards):
+        filename = sam.read1.tolist()[0]
+        read1 = get_trimgalore_outputfilename(filename, '_val_1')
+        filename = sam.read2.tolist()[0]
+        read2 = get_trimgalore_outputfilename(filename, '_val_2')
+        return [read1, read2]
+    else:
+        filename = sam.read1.tolist()[0]
+        read1 = get_trimgalore_outputfilename(filename, '_trimmed')
+
+    return [read1]
+
+    
+def get_mapping_inputs(wildcards):
 
     prefix = join(OUT_DIR, wildcards.sample + '_trimmed')
 
     if is_paired(wildcards):
-        return [prefix + '_1.fastq', prefix + '_2.fastq']
+        return [prefix + '_1.fastq.gz', prefix + '_2.fastq.gz']
     else:
-        return [prefix + '.fastq']
+        return [prefix + '.fastq.gz']
 
 
 def bowtie_input_filetype_option(filename):
