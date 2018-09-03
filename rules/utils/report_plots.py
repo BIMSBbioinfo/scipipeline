@@ -8,10 +8,10 @@ import seaborn as sns
 def plot_barcode_frequencies(tab_file, plotname):
     x=pd.read_csv(tab_file, sep='\t')
     f = plt.figure()
-    plt.plot(np.log10(x['counts'].sort_values(ascending=False).values//2))
-    plt.ylabel('Log10(# fragments)')
-    plt.xlabel('Barcodes')
-    plt.title('Barcode frequency')
+    ax = sns.distplot(x.counts.apply(lambda x: np.log10(x))
+    ax.set_xlabel('Log10(# Fragments)')
+    ax.set_ylabel('Frequency')
+    ax.set_title('Barcode frequency')
     f.savefig(plotname, dpi=f.dpi)
 
 
