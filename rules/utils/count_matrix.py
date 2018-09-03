@@ -23,9 +23,9 @@ def make_beds_for_intervalsize(bamfile, binsize, storage):
     bed_content = pd.DataFrame(columns=['chr', 'start', 'end'])
 
     for chrom in genomesize:
-        nbins = genomesize[chrom]//binsize
+        nbins = genomesize[chrom]//binsize + 1 if (genomesize[chrom] % binsize > 0) else 0
         starts = [int(i*binsize) for i in range(nbins)]
-        ends = [int((i+1)*binsize) for i in range(nbins)]
+        ends = [min(int((i+1)*binsize), genomesize[chrom]) for i in range(nbins)]
         chr_ = [chrom] * nbins
         cont = {'chr': chr_, 'start': starts, 'end': ends}
         bed_entry = pd.DataFrame(cont)
@@ -125,6 +125,7 @@ def sparse_count_reads_in_regions(bamfile, regions, storage, flank=0,
     print('found {} barcodes'.format(len(barcodes)))
 
     sdokmat = dok_matrix((nreg, len(barcodes)), dtype='int32')
+    nbarcode_inregions = {key: 0 for key in barcodes}
 
     tlen = template_length
     for idx, region in enumerate(regfile):
@@ -134,15 +135,21 @@ def sparse_count_reads_in_regions(bamfile, regions, storage, flank=0,
         iv.end += flank
 
         fetchstart = max(iv.start - tlen, 0)
-        fetchend =  min(iv.end + tlen, genomesize[iv.chrom])
+        fetchend =  iv.end
+#min(iv.end + tlen, genomesize[iv.chrom])
         for aln in afile.fetch(iv.chrom, fetchstart, fetchend):
             if aln.is_proper_pair and aln.pos < aln.next_reference_start:
+
+                if aln.template_length < 0:
+                    raise ValueError('template_length negative but next_reference_start greater')
                 # count paired end reads at midpoint
                 midpoint = aln.pos + aln.template_length//2
                 if midpoint >= iv.start and midpoint < iv.end:
                    sdokmat[idx, barcodes[aln.get_tag('RG') if use_group else 'dummy']] += 1
+                   nbarcode_inregions[barcodes[aln.get_tag('RG') if use_group else 'dummy']] += 1
 
             if not aln.is_paired:
+                print('single-end')
                 # count single-end reads at 5p end
                 if not aln.is_reverse:
                     if aln.pos >= iv.start and aln.pos < iv.end:
@@ -153,6 +160,7 @@ def sparse_count_reads_in_regions(bamfile, regions, storage, flank=0,
                        aln.pos + aln.reference_length - 1 < iv.end:
                         sdokmat[idx,
                         barcodes[aln.get_tag('RG') if use_group else 'dummy']] += 1
+                nbarcode_inregions[barcodes[aln.get_tag('RG') if use_group else 'dummy']] += 1
 
     afile.close()
 
@@ -169,7 +177,15 @@ def sparse_count_reads_in_regions(bamfile, regions, storage, flank=0,
     cont = {'region': indices[:,0], 'cell': indices[:, 1], 'count': values}
 
     df = pd.DataFrame(cont)
+    #main output file
     df.to_csv(storage, sep='\t', header=True, index=False)
+
+    names = [key for key in barcodes]
+    counts = [nbarcode_inregions[key] for key in barcodes]
+
+    df = pd.DataFrame({'barcodes':names, 'counts':counts})
+
+    df.to_csv(storage + '.counts', sep='\t', header=True, index=False)
 
 
 def get_barcode_frequency_genomewide(bamfile, storage):
@@ -230,7 +246,7 @@ def per_barcode_count_summary(cnt_mat, peak_counts, storage):
     per_bc_count.to_csv(storage, sep='\t')
 
 if __name__ == '__main__':
-  regions = '../../scipipe_output/dm3/countmatrix/atac_bin_1000.bed'
-  in_ = '../../scipipe_output/dm3/atac.barcoded.dedup.bam'
-  out = '../../scipipe_output/dm3/countmatrix/atac_bin_1000.tab'
+  regions = '../../scipipe_output/hg19/countmatrix/atac_bin_1000.bed'
+  in_ = '../../scipipe_output/hg19/atac.barcoded.dedup.bam'
+  out = '../../scipipe_output/hg19/countmatrix/atac_bin_1000.tab'
   sparse_count_reads_in_regions(in_, regions, out, flank=0)
