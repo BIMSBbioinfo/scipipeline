@@ -8,7 +8,7 @@ rule make_counting_bins:
         bams = join(OUT_DIR, "{reference}", "{sample}.barcoded.minmapq{minmapq}.dedup.mincount{mincounts}.bam"),
         bai = join(OUT_DIR, "{reference}", "{sample}.barcoded.minmapq{minmapq}.dedup.mincount{mincounts}.bam.bai")
     output:
-        bins = join(OUT_DIR, '{reference}', 'countmatrix', '{sample}_bin_{binsize}_minmapq{minmapq}_mincount{mincounts}.bed')
+        bins = join(OUT_DIR, '{reference}', 'countmatrix', 'genomebins_{sample}_binsize{binsize}.minmapq{minmapq}.mincount{mincounts}.bed')
     wildcard_constraints:
        minmapq='\d+', mincounts='\d+'
     run:
@@ -35,9 +35,9 @@ rule counting_reads_in_bins:
     input:
         bams = join(OUT_DIR, "{reference}", "{sample}.barcoded.minmapq{minmapq}.dedup.mincount{mincounts}.bam"),
         bai = join(OUT_DIR, "{reference}", "{sample}.barcoded.minmapq{minmapq}.dedup.mincount{mincounts}.bam.bai"),
-        bins = join(OUT_DIR, '{reference}', 'countmatrix', '{sample}_bin_{binsize}_minmapq{minmapq}_mincount{mincounts}.bed')
+        bins = join(OUT_DIR, '{reference}', 'countmatrix', 'genomebins_{sample}_binsize{binsize}.minmapq{minmapq}.mincount{mincounts}.bed')
     output:
-        countmatrix = join(OUT_DIR, '{reference}', 'countmatrix', '{sample}_bin_{binsize}_minmapq{minmapq}_mincount{mincounts}.tab')
+        countmatrix = join(OUT_DIR, '{reference}', 'countmatrix', 'genomebins_{sample}_binsize{binsize}.minmapq{minmapq}.mincount{mincounts}.tab')
     wildcard_constraints:
        minmapq='\d+', mincounts='\d+'
     run:
@@ -59,11 +59,11 @@ rule counting_reads_in_peaks:
     input:
         bams = join(OUT_DIR, "{reference}", "{sample}.barcoded.minmapq{minmapq}.dedup.mincount{mincounts}.bam"),
         bai = join(OUT_DIR, "{reference}", "{sample}.barcoded.minmapq{minmapq}.dedup.mincount{mincounts}.bam.bai"),
-        regions = join(OUT_DIR, "{reference}", "macs2", "{sample}.minmapq{minmapq}.mincount{mincounts}_summits.bed")
-    output: join(OUT_DIR, '{reference}', 'countmatrix', '{sample}_peak_counts_flank_{flank}_minmapq{minmapq}_mincount{mincounts}.tab')
+        regions = join(OUT_DIR, "{reference}", "macs2", "{sample}.minmapq{minmapq}.mincount{mincounts}.flank{flank}_summits.bed")
+    output: join(OUT_DIR, '{reference}', 'countmatrix', 'peak_counts_{sample}_flank{flank}.minmapq{minmapq}.mincount{mincounts}.tab')
     wildcard_constraints:
-       minmapq='\d+', mincounts='\d+'
-    run: sparse_count_reads_in_regions(input.bams, input.regions, output[0], flank=int(wildcards.flank))
+       minmapq='\d+', mincounts='\d+', flank='\d+'
+    run: sparse_count_reads_in_regions(input.bams, input.regions, output[0])
 
 
 INPUT_ALL.append(expand(rules.counting_reads_in_peaks.output,

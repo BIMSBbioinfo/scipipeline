@@ -2,6 +2,7 @@
                    "bowtie@2.3"
                    "macs@2.1.1.20160309"
                    "samtools"
+                   "bedtools"
                    "python-wrapper"
                    "python-numpy"
                    "python-biopython"
