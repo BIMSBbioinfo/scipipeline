@@ -63,7 +63,7 @@ rule deduplicate_split_reads_by_barcode:
     wildcard_constraints:
        minmapq='\d+'
     shell:
-        "java -jar {params.picard} MarkDuplicates -I={input[0]} -O={output.outbam} -M={output.summary} BARCODE_TAG=RG REMOVE_DUPLICATES=true 2> {log}"
+        "java -XX:ParallelGCThreads={threads} -jar {params.picard} MarkDuplicates -I={input[0]} -O={output.outbam} -M={output.summary} BARCODE_TAG=RG REMOVE_DUPLICATES=true 2> {log}"
 
 INPUT_ALL.append(expand(rules.deduplicate_split_reads_by_barcode.output, 
                         reference=config['reference'], 
@@ -84,7 +84,7 @@ rule library_complexity_before_dedup:
     wildcard_constraints:
        minmapq='\d+'
     shell:
-        "java -jar {params.picard} EstimateLibraryComplexity I={input} O={output} 2> {log}"
+        "java -XX:ParallelGCThreads={threads} -jar {params.picard} EstimateLibraryComplexity I={input} O={output} 2> {log}"
 
 INPUT_ALL.append(expand(rules.library_complexity_before_dedup.output, 
                         reference=config['reference'], 
@@ -104,7 +104,7 @@ rule library_complexity_after_dedup:
     wildcard_constraints:
        minmapq='\d+'
     shell:
-        "java -jar {params.picard} EstimateLibraryComplexity I={input} O={output} 2> {log}"
+        "java -XX:ParallelGCThreads={threads} -jar {params.picard} EstimateLibraryComplexity I={input} O={output} 2> {log}"
 
 INPUT_ALL.append(expand(rules.library_complexity_after_dedup.output, 
                         reference=config['reference'], 
