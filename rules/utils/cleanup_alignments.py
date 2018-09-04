@@ -62,7 +62,9 @@ def remove_chroms(inbam, outbam, chroms):
         if aln.is_unmapped:
             continue
         if aln.reference_name in chrnames:
-            aln.tid = tid_map[aln.tid]
+            aln.reference_id = tid_map[aln.reference_id]
+            if aln.is_paired and aln.is_proper_pair:
+                aln.next_reference_id = tid_map[aln.next_reference_id]
             bam_writer.write(aln)
         
     bam_writer.close()
