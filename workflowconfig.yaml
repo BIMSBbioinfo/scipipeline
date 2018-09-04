@@ -19,12 +19,10 @@ min_counts_per_barcode: 0
 reference:
   dm6:
     bowtie2index: /data/akalin/wkopp/bowtie2_indices/dm6/dm6
-    genomesize: /data/akalin/wkopp/bowtie2_indices/dm6.genome
     macs_gsize: dm
     removechroms: [chrM, _random, chrUn]
   danrer10:
     bowtie2index: /data/akalin/wkopp/bowtie2_indices/danrer10/danrer10
-    genomesize: /data/akalin/wkopp/bowtie2_indices/danrer10.genome
     macs_gsize: dm
     removechroms: [chrM, _random, chrUn]
 

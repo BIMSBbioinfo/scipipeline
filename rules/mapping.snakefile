@@ -1,4 +1,5 @@
 from utils.cleanup_alignments import remove_chroms
+from utils.cleanup_alignments import make_genome_size
 
 def _bowtie_input_type_read(wildcards):
     filename = samples[samples.Name == wildcards.sample].read1.tolist()[0]
@@ -39,3 +40,13 @@ rule remove_chromosomes:
         remove_chroms(input[0], output[0], params.chroms)
 
 INPUT_ALL.append(expand(rules.remove_chromosomes.output, sample=samples.Name.tolist(), reference=config['reference']))
+
+
+rule make_genome_size_table:
+    input: expand(join(OUT_DIR, '{{reference}}', '{sample}.cleanchrom.bam'), sample=samples.Name.tolist())
+    output: join(OUT_DIR, '{reference}', '{reference}.genome')
+    run:
+        make_genome_size(input[0], output[0])
+
+INPUT_ALL.append(expand(rules.make_genome_size_table.output, reference=config['reference']))
+

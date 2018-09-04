@@ -2,6 +2,19 @@ import os
 from pysam import AlignmentFile
 
 
+def make_genome_size(inbam, output):
+    """
+    This function derives the genome size table
+    from the bam header.
+    """
+
+    treatment = AlignmentFile(inbam, 'rb')
+    
+    with open(output, "w") as out:
+        for seq in treatment.header['SQ']:
+            output.write("{}\t{}".format(seq['SN'], seq['LN']))
+
+
 def remove_chroms(inbam, outbam, chroms):
     """
     This function takes a bam-file and outputs
