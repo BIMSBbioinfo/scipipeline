@@ -6,9 +6,10 @@ plt.switch_backend('agg')
 import seaborn as sns
 
 def plot_barcode_frequencies(tab_file, plotname):
+    """ Plot barcode frequency distribution"""
     x=pd.read_csv(tab_file, sep='\t')
     f = plt.figure()
-    ax = sns.distplot(x.counts.apply(lambda x: np.log10(x))
+    ax = sns.distplot(x.counts.apply(np.log10))
     ax.set_xlabel('Log10(# Fragments)')
     ax.set_ylabel('Frequency')
     ax.set_title('Barcode frequency')
@@ -17,6 +18,7 @@ def plot_barcode_frequencies(tab_file, plotname):
 
 
 def plot_fragment_size(bamin, plotname):
+    """Plot fragment size distribution"""
     handle = pysam.AlignmentFile(bamin, 'r')
     fragmentsize_dist = np.zeros((2000,))
     
@@ -36,6 +38,22 @@ def plot_fragment_size(bamin, plotname):
     f.savefig(plotname, dpi=f.dpi)
 
 
+def plot_barcode_frequency_by_peak_percentage(barcode_frequency, 
+                                              peak_frequency, plotname):
+    """2D plot of percentage of reads in peaks vs. reads per barcode"""
+    y = pd.read_csv(peak_frequency, sep='\t')
+    y = y.groupby('cell').sum()['count']
+
+    x = pd.read_csv(barcode_frequency, sep='\t')
+    x = x.groupby('cell').sum()['count']
+    y = y/x * 100.
+
+    x = x.apply(np.log10)
+
+    ax = sns.jointplot(x, y, kind='hex', ylim=[0, 100])
+    ax = ax.set_axis_labels('Log10(# Fragments per cell)',
+                            'Fragments in peaks [ % ]')
+    ax = ax.savefig(plotname)
 
 
 def scatter_log_frequencies_per_species(tables, labels, plotname):
