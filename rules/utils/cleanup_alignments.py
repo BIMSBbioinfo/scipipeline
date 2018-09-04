@@ -12,7 +12,7 @@ def make_genome_size(inbam, output):
     
     with open(output, "w") as out:
         for seq in treatment.header['SQ']:
-            output.write("{}\t{}".format(seq['SN'], seq['LN']))
+            out.write("{}\t{}\n".format(seq['SN'], seq['LN']))
 
 
 def remove_chroms(inbam, outbam, chroms):
