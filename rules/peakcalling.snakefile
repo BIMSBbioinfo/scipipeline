@@ -26,10 +26,20 @@ INPUT_ALL.append(expand(rules.peak_calling_on_aggregate.output,
 rule merge_overlapping_peaks:
     """ Peak summits extended by flank, merged, sorted and trimmed to same size"""
     input: join(OUT_DIR, "{reference}", "macs2", "{sample}.minmapq{minmapq}.mincount{mincounts}_summits.bed")
-    output: join(OUT_DIR, "{reference}", "macs2", "{sample}.minmapq{minmapq}.mincount{mincounts}.flank{flank}_summits.bed")
+    output: join(OUT_DIR, "{reference}", "macs2", "{sample}.minmapq{minmapq}.mincount{mincounts}.flank{flk}_summits.bed")
     params:
-       genome = lambda wc: config[wc.reference]['genomesize']
+       genome = lambda wc: config['reference'][wc.reference]['genomesize'],
+       flks = lambda wc: wc.flk
     shell:
-       "bedtools flank -i {input} -g {params.genome} -l {flank} -r {flank} | bedtools sort -i stdin | bedtools merge -i stdin | awk \"{{mid=($2+$3)/2; print $1'\t'(mid-250)'\t'(mid+250)}}\" > {output}"
+      """
+      bedtools flank -i {input} -g {params.genome} -l {params.flks} -r {params.flks} | bedtools sort -i stdin | bedtools merge -i stdin | awk -F '{{ OFS="\\t"; mid=($2+$3)/2; print $1, mid-{params.flks},mid+{params.flks}}}' > {output}"
+     """
 
+
+INPUT_ALL.append(expand(rules.merge_overlapping_peaks.output, 
+                        reference=config['reference'], 
+                        sample=samples.Name.tolist(),
+                        minmapq=config['min_mapq'],
+                        flk=config['peak_flank'],
+                        mincounts=config['min_counts_per_barcode']))
 
