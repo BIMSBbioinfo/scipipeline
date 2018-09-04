@@ -6,8 +6,7 @@
 rule peak_calling_on_aggregate:
     input: join(OUT_DIR, "{reference}", "{sample}.barcoded.minmapq{minmapq}.dedup.mincount{mincounts}.bam")
     output: join(OUT_DIR, "{reference}", "macs2", "{sample}.minmapq{minmapq}.mincount{mincounts}_peaks.narrowPeak"), \
-            join(OUT_DIR, "{reference}", "macs2", "{sample}.minmapq{minmapq}.mincount{mincounts}_summits.bed"), \
-            directory(join(OUT_DIR, "{reference}", "macs2"))
+            join(OUT_DIR, "{reference}", "macs2", "{sample}.minmapq{minmapq}.mincount{mincounts}_summits.bed")
     params: name='{sample}.minmapq{minmapq}.mincount{mincounts}',
             outdir = join(OUT_DIR, "{reference}", "macs2"),
             foption = lambda wc: 'BAMPE' if is_paired(wc) else 'BAM',
@@ -29,7 +28,7 @@ rule merge_overlapping_peaks:
     input: join(OUT_DIR, "{reference}", "macs2", "{sample}.minmapq{minmapq}.mincount{mincounts}_summits.bed")
     output: join(OUT_DIR, "{reference}", "macs2", "{sample}.minmapq{minmapq}.mincount{mincounts}.flank{flank}_summits.bed")
     params:
-       genome = lambda wc: config[wc.reference]['genomesize'], \
+       genome = lambda wc: config[wc.reference]['genomesize']
     shell:
        "bedtools flank -i {input} -g {params.genome} -l {flank} -r {flank} | bedtools sort -i stdin | bedtools merge -i stdin | awk \"{{mid=($2+$3)/2; print $1'\t'(mid-250)'\t'(mid+250)}}\" > {output}"
 
