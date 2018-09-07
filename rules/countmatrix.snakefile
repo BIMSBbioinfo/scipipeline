@@ -1,4 +1,5 @@
-
+import traceback
+import sys
 
 # ------------------------- #
 # Create counting bed files
@@ -42,7 +43,13 @@ rule counting_reads_in_bins:
     wildcard_constraints:
        minmapq='\d+', mincounts='\d+'
     run:
-        sparse_count_reads_in_regions(input.bams, input.bins, output.countmatrix, flank=0)
+        try:
+            sparse_count_reads_in_regions(input.bams, input.bins, output.countmatrix, flank=0)
+        except:
+            exc_type, exc_value, exc_traceback = sys.exc_info()
+            print("custom code exception:")
+            traceback.print_exception(exc_type, exc_value, exc_traceback,
+                              limit=2, file=sys.stdout)
 
 
 INPUT_ALL.append(expand(rules.counting_reads_in_bins.output,
@@ -65,7 +72,15 @@ rule counting_reads_in_peaks:
             join(OUT_DIR, '{reference}', 'countmatrix', 'peak_counts_{sample}_flank{flank}.minmapq{minmapq}.mincount{mincounts}.tab.counts')
     wildcard_constraints:
        minmapq='\d+', mincounts='\d+', flank='\d+'
-    run: sparse_count_reads_in_regions(input.bams, input.regions, output[0])
+    run: 
+        try:
+            sparse_count_reads_in_regions(input.bams, input.regions, output[0], flank=0)
+        except:
+            exc_type, exc_value, exc_traceback = sys.exc_info()
+            print("custom code exception:")
+            traceback.print_exception(exc_type, exc_value, exc_traceback,
+                              limit=2, file=sys.stdout)
+
 
 
 INPUT_ALL.append(expand(rules.counting_reads_in_peaks.output,
