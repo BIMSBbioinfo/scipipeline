@@ -107,7 +107,7 @@ def sparse_count_reads_in_regions(bamfile, regions, storage, flank=0,
 
     nreg = 0
     regfile = BED_Reader(regions)
-    for reg in regfile:
+    for _ in regfile:
         nreg += 1
 
     if 'RG' in afile.header:
@@ -146,7 +146,7 @@ def sparse_count_reads_in_regions(bamfile, regions, storage, flank=0,
                 midpoint = aln.pos + aln.template_length//2
                 if midpoint >= iv.start and midpoint < iv.end:
                    sdokmat[idx, barcodes[aln.get_tag('RG') if use_group else 'dummy']] += 1
-                   nbarcode_inregions[barcodes[aln.get_tag('RG') if use_group else 'dummy']] += 1
+                   nbarcode_inregions[aln.get_tag('RG') if use_group else 'dummy'] += 1
 
             if not aln.is_paired:
                 print('single-end')
@@ -160,7 +160,7 @@ def sparse_count_reads_in_regions(bamfile, regions, storage, flank=0,
                        aln.pos + aln.reference_length - 1 < iv.end:
                         sdokmat[idx,
                         barcodes[aln.get_tag('RG') if use_group else 'dummy']] += 1
-                nbarcode_inregions[barcodes[aln.get_tag('RG') if use_group else 'dummy']] += 1
+                nbarcode_inregions[aln.get_tag('RG') if use_group else 'dummy'] += 1
 
     afile.close()
 
