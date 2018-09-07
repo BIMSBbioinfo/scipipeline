@@ -56,14 +56,14 @@ rule deduplicate_split_reads_by_barcode:
     input: join(OUT_DIR, "{reference}", "{sample}.barcoded.minmapq{minmapq}.sorted.bam"), \
            join(OUT_DIR, "{reference}", "{sample}.barcoded.minmapq{minmapq}.sorted.bam.bai")
     output: outbam=join(OUT_DIR, "{reference}", "{sample}.barcoded.minmapq{minmapq}.dedup.bam"), \
-       summary=join(OUT_DIR, "{reference}", "report", "markdup_metrics.{sample}.minmap{minmapq}.bam")
+       summary=join(OUT_DIR, "{reference}", "report", "markdup_metrics.{sample}.minmap{minmapq}.txt")
     params: picard=config['picard_jarpath']
     threads: 20
     log: join(LOG_DIR, 'picard_markduplicates_{sample}_{reference}_minmap{minmapq}.log')
     wildcard_constraints:
        minmapq='\d+'
     shell:
-        "java -XX:ParallelGCThreads={threads} -jar {params.picard} MarkDuplicates -I={input[0]} -O={output.outbam} -M={output.summary} BARCODE_TAG=RG REMOVE_DUPLICATES=true 2> {log}"
+        "java -XX:ParallelGCThreads={threads} -jar {params.picard} MarkDuplicates I={input[0]} O={output.outbam} M={output.summary} BARCODE_TAG=RG REMOVE_DUPLICATES=true 2> {log}"
 
 INPUT_ALL.append(expand(rules.deduplicate_split_reads_by_barcode.output, 
                         reference=config['reference'], 
