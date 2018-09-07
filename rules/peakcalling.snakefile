@@ -33,7 +33,7 @@ rule merge_overlapping_peaks:
        flks = lambda wc: wc.flk
     shell:
       """
-      bedtools flank -i {input.inbed} -g {input.genomesize} -l {params.flks} -r {params.flks} | bedtools sort -i stdin | bedtools merge -i stdin | awk -F '{{ OFS="\\t"; mid=($2+$3)/2; print $1, mid-{params.flks},mid+{params.flks}}}' > {output}"
+      bedtools slop -i {input.inbed} -g {input.genomesize} -l {params.flks} -r {params.flks} | bedtools sort -i stdin | bedtools merge -i stdin | awk '{{ OFS="\\t"; mid=int(($2+$3)/2); print $1, mid-{params.flks},mid+{params.flks}}}' > {output}
      """
 
 
