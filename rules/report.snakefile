@@ -1,6 +1,7 @@
 from os.path import join
 
 from utils.report_plots import plot_barcode_frequencies
+from utils.report_plots import plot_barcode_frequency_by_peak_percentage
 from utils.report_plots import plot_fragment_size
 from utils.count_matrix import get_barcode_frequency_genomewide
 
@@ -73,7 +74,7 @@ rule make_multiqc_report:
     output: join(OUT_DIR, 'multiqc_report.html'), directory(join(OUT_DIR, 'multiqc_data'))
     params: searchdir=OUT_DIR
     shell:
-        "multiqc --outdir {params.searchdir} {params.searchdir}"
+        "multiqc -f --outdir {params.searchdir} {params.searchdir}"
 
 INPUT_ALL.append(rules.make_multiqc_report.output)
 
