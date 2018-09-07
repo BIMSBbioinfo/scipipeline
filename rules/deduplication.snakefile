@@ -144,13 +144,14 @@ rule index_deduplicate_countfiltered_reads:
 
 rule create_bigwig:
     """Create bigwig of alignment"""
-    input: join(OUT_DIR, "{reference}", "{sample}.barcoded.minmapq{minmapq}.dedup.mincount{mincounts}.bam")
+    input: join(OUT_DIR, "{reference}", "{sample}.barcoded.minmapq{minmapq}.dedup.mincount{mincounts}.bam"),
+           join(OUT_DIR, "{reference}", "{sample}.barcoded.minmapq{minmapq}.dedup.mincount{mincounts}.bam.bai")
     output: join(OUT_DIR, "{reference}", "{sample}.barcoded.minmapq{minmapq}.dedup.mincount{mincounts}.bw")
     wildcard_constraints:
         mincounts='\d+', minmapq='\d+'
     threads: 10
     shell:
-        "bamCoverage -b {input} -o {output} -p {threads}"
+        "bamCoverage -b {input[0]} -o {output} -p {threads}"
 
 INPUT_ALL.append(expand(rules.create_bigwig.output, 
                         reference=config['reference'], 
