@@ -176,12 +176,26 @@ The file barcodesheet.tsv then should contain a table
 
 ## Run the snakemake pipeline
 
-In order to run the pipeline issue the following command
+The pipeline can be run on a local computer as well as in a cluster environment.
+
+In order to run the pipeline locally, issue the following command
 ```
-snakemake -s main.snake
+snakemake -s main.snake --cores <ncores>
 ```
 
-After the pipeline ran through additionally run
+Alternatively, the pipeline can be run on a cluster environment.
+To this end, the pipeline contains launcher scripts.
+
+If you are allowed to run the pipeline directly from the head node
+invoke `bash runpipeline_local.bash`. In that case, snakemake will run locally
+and all jobs that need to be run to complete the pipeline will be submitted via `qsub`
+to the grid engine.
+
+If you are not allowed to run the pipeline on the head node
+you can invoke `bash runpipeline_remote.bash`. This will start snakemake itself via qsub
+on the cluster. From there `runpipeline_local.bash` will be used.
+
+After the pipeline has completed a report document can be generated via
 
 ```
 snakemake -s main.snake --report results.html
