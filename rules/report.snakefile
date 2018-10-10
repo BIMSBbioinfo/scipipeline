@@ -11,6 +11,8 @@ from utils.count_matrix import get_barcode_frequency_genomewide
 rule determine_barcode_frequencies:
     input: join(OUT_DIR, "{reference}", "{sample}.barcoded.minmapq{minmapq}.dedup.mincount{mincounts}.bam")
     output: join(OUT_DIR, "{reference}", "report", "barcode_frequencies.{sample}.minmapq{minmapq}.mincount{mincounts}.tab")
+    resources:
+      mem_mb=200
     run:
         get_barcode_frequency_genomewide(input[0], output[0])
 
@@ -21,6 +23,8 @@ rule plot_barcode_freqs:
     """Plot barcode frequency"""
     input: join(OUT_DIR, "{reference}", "report", "barcode_frequencies.{sample}.minmapq{minmapq}.mincount{mincounts}.tab")
     output: report(join(OUT_DIR, "{reference}", "report", "barcode_frequencies.{sample}.minmapq{minmapq}.mincount{mincounts}.svg"), category="Barcode frequency")
+    resources:
+      mem_mb=200
     run:
         plot_barcode_frequencies(input[0], output[0])
 
@@ -35,6 +39,8 @@ rule plot_barcode_freqs_by_percent_in_peaks:
     input: x = join(OUT_DIR, '{reference}', 'countmatrix', 'genomebins_{sample}_binsize{binsize}.minmapq{minmapq}.mincount{mincounts}.tab'), \
            y = join(OUT_DIR, '{reference}', 'countmatrix', 'peak_counts_{sample}_flank{flank}.minmapq{minmapq}.mincount{mincounts}.tab')
     output: report(join(OUT_DIR, "{reference}", "report", "freq_by_peak_percentage.{sample}.minmapq{minmapq}.mincount{mincounts}.flank{flank}.binsize{binsize}.svg"), category="Barcode frequency")
+    resources:
+      mem_mb=200
     run:
         plot_barcode_frequency_by_peak_percentage(input.x, input.y, output[0])
 
@@ -52,6 +58,8 @@ rule plot_fragment_size_dist:
     """Plot fragment size distribution"""
     input: join(OUT_DIR, "{reference}", "{sample}.barcoded.minmapq{minmapq}.dedup.mincount{mincounts}.bam")
     output: report(join(OUT_DIR, "{reference}", "report", "{sample}.fragmentsize_minmapq{minmapq}_mincount{mincounts}.svg"), category="Fragment size distribution")
+    resources:
+      mem_mb=200
     run:
         plot_fragment_size(input[0], output[0])
 
@@ -73,6 +81,8 @@ rule make_multiqc_report:
                   mincounts=config['min_counts_per_barcode'])
     output: join(OUT_DIR, 'multiqc_report.html'), directory(join(OUT_DIR, 'multiqc_data'))
     params: searchdir=OUT_DIR
+    resources:
+      mem_mb=200
     shell:
         "multiqc -f --outdir {params.searchdir} {params.searchdir}"
 

@@ -12,6 +12,8 @@ rule make_counting_bins:
         bins = join(OUT_DIR, '{reference}', 'countmatrix', 'genomebins_{sample}_binsize{binsize}.minmapq{minmapq}.mincount{mincounts}.bed')
     wildcard_constraints:
        minmapq='\d+', mincounts='\d+'
+    resources:
+        mem_mb=500
     run:
         make_beds_for_intervalsize(input.bams, int(wildcards.binsize), output.bins)
 
@@ -24,6 +26,8 @@ rule make_barcode_table:
         bams = join(OUT_DIR, "{reference}", "{sample}.barcoded.bam"),
     output:
         barcodes = join(OUT_DIR, '{reference}', 'countmatrix', '{sample}_barcodes.tsv')
+    resources:
+        mem_mb=500
     run:
         make_barcode_table(input.bams, output.barcodes)
 
@@ -42,6 +46,8 @@ rule counting_reads_in_bins:
         cellsum = join(OUT_DIR, '{reference}', 'countmatrix', 'genomebins_{sample}_binsize{binsize}.minmapq{minmapq}.mincount{mincounts}.tab.counts')
     wildcard_constraints:
        minmapq='\d+', mincounts='\d+'
+    resources:
+        mem_mb=1000
     run:
         try:
             sparse_count_reads_in_regions(input.bams, input.bins, output.countmatrix, flank=0)
@@ -72,6 +78,8 @@ rule counting_reads_in_peaks:
             join(OUT_DIR, '{reference}', 'countmatrix', 'peak_counts_{sample}_flank{flank}.minmapq{minmapq}.mincount{mincounts}.tab.counts')
     wildcard_constraints:
        minmapq='\d+', mincounts='\d+', flank='\d+'
+    resources:
+        mem_mb=1000
     run: 
         try:
             sparse_count_reads_in_regions(input.bams, input.regions, output[0], flank=0)

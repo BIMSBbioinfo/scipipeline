@@ -11,6 +11,8 @@ rule remove_low_mapq_reads:
     params: minmapq = lambda wc: wc.minmapq
     wildcard_constraints:
        minmapq='\d+'
+    resources:
+        mem_mb=1000
     run: 
        remove_low_mapq_reads(input[0], output[0], int(params.minmapq))
 
@@ -23,6 +25,8 @@ rule sort_split_reads:
     output: join(OUT_DIR, "{reference}", "{sample}.barcoded.minmapq{minmapq}.sorted.bam")
     wildcard_constraints:
        minmapq='\d+'
+    resources:
+        mem_mb=5000
     shell: "samtools sort {input} -o {output}"
 
 # ------------------------- #
@@ -34,6 +38,8 @@ rule index_minmapq_reads:
     output: join(OUT_DIR, "{reference}", "{sample}.barcoded.minmapq{minmapq}.sorted.bam.bai")
     wildcard_constraints:
         minmapq='\d+'
+    resources:
+        mem_mb=1000
     shell: "samtools index {input}"
 
 
@@ -46,6 +52,8 @@ rule index_deduplicate_reads:
     output: join(OUT_DIR, "{reference}", "{sample}.barcoded.minmapq{minmapq}.dedup.bam.bai")
     wildcard_constraints:
         minmapq='\d+'
+    resources:
+        mem_mb=1000
     shell: "samtools index {input}"
 
 # ------------------------- #
@@ -58,12 +66,14 @@ rule deduplicate_split_reads_by_barcode:
     output: outbam=join(OUT_DIR, "{reference}", "{sample}.barcoded.minmapq{minmapq}.dedup.bam"), \
        summary=join(OUT_DIR, "{reference}", "report", "markdup_metrics.{sample}.minmap{minmapq}.txt")
     params: picard=config['picard_jarpath']
-    threads: 20
+    threads: 10
     log: join(LOG_DIR, 'picard_markduplicates_{sample}_{reference}_minmap{minmapq}.log')
     wildcard_constraints:
        minmapq='\d+'
+    resources:
+        mem_mb=5000
     shell:
-        "java -XX:ParallelGCThreads={threads} -jar {params.picard} MarkDuplicates I={input[0]} O={output.outbam} M={output.summary} BARCODE_TAG=RG REMOVE_DUPLICATES=true 2> {log}"
+        "java -Xms1000m -Xmx{resources.mem_mb}m -XX:ParallelGCThreads={threads} -jar {params.picard} MarkDuplicates I={input[0]} O={output.outbam} M={output.summary} BARCODE_TAG=RG REMOVE_DUPLICATES=true 2> {log}"
 
 INPUT_ALL.append(expand(rules.deduplicate_split_reads_by_barcode.output, 
                         reference=config['reference'], 
@@ -80,11 +90,13 @@ rule library_complexity_before_dedup:
     output: join(OUT_DIR, "{reference}", "report", "library_complexity_beforededup.{sample}.minmap{minmapq}.txt")
     params: picard=config['picard_jarpath']
     threads: 20
+    resources:
+        mem_mb=5000
     log: join(LOG_DIR, 'picard_estlibcompl_beforededup_{sample}_{reference}_minmapq{minmapq}.log')
     wildcard_constraints:
        minmapq='\d+'
     shell:
-        "java -XX:ParallelGCThreads={threads} -jar {params.picard} EstimateLibraryComplexity I={input} O={output} 2> {log}"
+        "java -Xms1000m -Xmx{resources.mem_mb}m -XX:ParallelGCThreads={threads} -jar {params.picard} EstimateLibraryComplexity I={input} O={output} 2> {log}"
 
 INPUT_ALL.append(expand(rules.library_complexity_before_dedup.output, 
                         reference=config['reference'], 
@@ -103,8 +115,10 @@ rule library_complexity_after_dedup:
     log: join(LOG_DIR, 'picard_estlibcompl_afterdedup_{sample}_{reference}_minmapq{minmapq}.log')
     wildcard_constraints:
        minmapq='\d+'
+    resources:
+        mem_mb=5000
     shell:
-        "java -XX:ParallelGCThreads={threads} -jar {params.picard} EstimateLibraryComplexity I={input} O={output} 2> {log}"
+        "java -Xms1000m -Xmx{resources.mem_mb}m -XX:ParallelGCThreads={threads} -jar {params.picard} EstimateLibraryComplexity I={input} O={output} 2> {log}"
 
 INPUT_ALL.append(expand(rules.library_complexity_after_dedup.output, 
                         reference=config['reference'], 
@@ -119,6 +133,8 @@ rule remove_low_fragmentcount_barcodes:
     input: join(OUT_DIR, "{reference}", "{sample}.barcoded.minmapq{minmapq}.dedup.bam")
     output: join(OUT_DIR, "{reference}", "{sample}.barcoded.minmapq{minmapq}.dedup.mincount{mincounts}.bam")
     params: mincounts = lambda wc: wc.mincounts
+    resources:
+        mem_mb=500
     wildcard_constraints:
         mincounts='\d+', minmapq='\d+'
     run:
@@ -139,6 +155,8 @@ rule index_deduplicate_countfiltered_reads:
     output: join(OUT_DIR, "{reference}", "{sample}.barcoded.minmapq{minmapq}.dedup.mincount{mincounts}.bam.bai")
     wildcard_constraints:
         mincounts='\d+', minmapq='\d+'
+    resources:
+        mem_mb=500
     shell: "samtools index {input}"
 
 
@@ -150,6 +168,8 @@ rule create_bigwig:
     wildcard_constraints:
         mincounts='\d+', minmapq='\d+'
     threads: 10
+    resources:
+        mem_mb=1000
     shell:
         "bamCoverage -b {input[0]} -o {output} -p {threads}"
 

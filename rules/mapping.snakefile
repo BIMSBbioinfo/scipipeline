@@ -14,7 +14,9 @@ rule read_mapping:
         genome=lambda wildcards: config['reference'][wildcards.reference]['bowtie2index'],
         paired=is_paired,
         filetype=_bowtie_input_type_read
-    threads: 20
+    threads: 10
+    resources:
+       mem_mb=500
     log: join(LOG_DIR, '{sample}_{reference}_bowtie2.log')
     run:
         cmd = 'bowtie2'
@@ -36,6 +38,8 @@ rule remove_chromosomes:
     input: join(OUT_DIR, '{reference}', '{sample}.bam')
     output: join(OUT_DIR, '{reference}', '{sample}.cleanchrom.bam')
     params: chroms = lambda wc: config['reference'][wc.reference]['removechroms']
+    resources:
+        mem_mb=1000
     run:
         remove_chroms(input[0], output[0], params.chroms)
 
@@ -45,6 +49,8 @@ INPUT_ALL.append(expand(rules.remove_chromosomes.output, sample=samples.Name.tol
 rule make_genome_size_table:
     input: expand(join(OUT_DIR, '{{reference}}', '{sample}.cleanchrom.bam'), sample=samples.Name.tolist())
     output: join(OUT_DIR, '{reference}', '{reference}.genome')
+    resources:
+        mem_mb=400
     run:
         make_genome_size(input[0], output[0])
 
