@@ -13,7 +13,7 @@ rule make_counting_bins:
     wildcard_constraints:
        minmapq='\d+', mincounts='\d+'
     resources:
-        mem_mb=500
+        mem_mb=1000
     run:
         make_beds_for_intervalsize(input.bams, int(wildcards.binsize), output.bins)
 
@@ -27,7 +27,7 @@ rule make_barcode_table:
     output:
         barcodes = join(OUT_DIR, '{reference}', 'countmatrix', '{sample}_barcodes.tsv')
     resources:
-        mem_mb=500
+        mem_mb=1000
     run:
         make_barcode_table(input.bams, output.barcodes)
 
@@ -47,7 +47,7 @@ rule counting_reads_in_bins:
     wildcard_constraints:
        minmapq='\d+', mincounts='\d+'
     resources:
-        mem_mb=1000
+        mem_mb=10000
     run:
         try:
             sparse_count_reads_in_regions(input.bams, input.bins, output.countmatrix, flank=0)
@@ -79,7 +79,7 @@ rule counting_reads_in_peaks:
     wildcard_constraints:
        minmapq='\d+', mincounts='\d+', flank='\d+'
     resources:
-        mem_mb=1000
+        mem_mb=10000
     run: 
         try:
             sparse_count_reads_in_regions(input.bams, input.regions, output[0], flank=0)

@@ -21,7 +21,7 @@ rule make_pseudo_genomes:
     input: lambda wildcards: barcodes[barcodes.Name == wildcards.barcode].reference.tolist()
     output: join(PSGENOME_OUTDIR, '{barcode}.fasta')
     resources:
-      mem_mb=100
+      mem_mb=1000
     wildcard_constraints:
         barcode="[\w\d]+"
     run:
@@ -35,7 +35,7 @@ rule make_bowtie2_index_from_pseudo_genomes:
     input: join(PSGENOME_OUTDIR, '{barcode}.fasta')
     output: join(PSGENOME_OUTDIR, '{barcode}.1.bt2')
     resources:
-        mem_mb=100
+        mem_mb=1000
     shell:
         "bowtie2-build {input} {params}"
 
@@ -75,7 +75,6 @@ rule sort_mapping_pseudo_genome_by_name:
     output: join(PSGENOME_OUTDIR, 'barcode.{barcode}.namesorted.bam')
     resources:
         mem_mb=10000
-    threads: 2
     wildcard_constraints:
         barcode="[\w\d]+"
     shell:
@@ -97,7 +96,6 @@ rule split_reads_by_index:
     output: join(OUT_DIR, "{reference}", "{sample}.barcoded.bam")
     resources:
         mem_mb=1000
-    threads: 2
     params:
        min_mapq = config['barcodes']['min_mapq'],
        max_mismatches = config['barcodes']['max_mismatch']

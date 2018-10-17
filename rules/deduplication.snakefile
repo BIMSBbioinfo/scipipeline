@@ -39,7 +39,7 @@ rule index_minmapq_reads:
     wildcard_constraints:
         minmapq='\d+'
     resources:
-        mem_mb=1000
+        mem_mb=2000
     shell: "samtools index {input}"
 
 
@@ -53,7 +53,7 @@ rule index_deduplicate_reads:
     wildcard_constraints:
         minmapq='\d+'
     resources:
-        mem_mb=1000
+        mem_mb=2000
     shell: "samtools index {input}"
 
 # ------------------------- #
@@ -89,14 +89,14 @@ rule library_complexity_before_dedup:
     input: join(OUT_DIR, "{reference}", "{sample}.barcoded.minmapq{minmapq}.sorted.bam")
     output: join(OUT_DIR, "{reference}", "report", "library_complexity_beforededup.{sample}.minmap{minmapq}.txt")
     params: picard=config['picard_jarpath']
-    threads: 20
+    threads: 10
     resources:
         mem_mb=5000
     log: join(LOG_DIR, 'picard_estlibcompl_beforededup_{sample}_{reference}_minmapq{minmapq}.log')
     wildcard_constraints:
        minmapq='\d+'
     shell:
-        "java -Xms1000m -Xmx{resources.mem_mb}m -XX:ParallelGCThreads={threads} -jar {params.picard} EstimateLibraryComplexity I={input} O={output} 2> {log}"
+        "java -Xms1000m -Xmx4000m -XX:ParallelGCThreads={threads} -jar {params.picard} EstimateLibraryComplexity I={input} O={output} 2> {log}"
 
 INPUT_ALL.append(expand(rules.library_complexity_before_dedup.output, 
                         reference=config['reference'], 
@@ -111,14 +111,14 @@ rule library_complexity_after_dedup:
     input: join(OUT_DIR, "{reference}", "{sample}.barcoded.minmapq{minmapq}.dedup.bam")
     output: join(OUT_DIR, "{reference}", "report", "library_complexity_afterdedup.{sample}.minmap{minmapq}.txt")
     params: picard=config['picard_jarpath']
-    threads: 20
+    threads: 10
     log: join(LOG_DIR, 'picard_estlibcompl_afterdedup_{sample}_{reference}_minmapq{minmapq}.log')
     wildcard_constraints:
        minmapq='\d+'
     resources:
         mem_mb=5000
     shell:
-        "java -Xms1000m -Xmx{resources.mem_mb}m -XX:ParallelGCThreads={threads} -jar {params.picard} EstimateLibraryComplexity I={input} O={output} 2> {log}"
+        "java -Xms1000m -Xmx4000m -XX:ParallelGCThreads={threads} -jar {params.picard} EstimateLibraryComplexity I={input} O={output} 2> {log}"
 
 INPUT_ALL.append(expand(rules.library_complexity_after_dedup.output, 
                         reference=config['reference'], 
@@ -134,7 +134,7 @@ rule remove_low_fragmentcount_barcodes:
     output: join(OUT_DIR, "{reference}", "{sample}.barcoded.minmapq{minmapq}.dedup.mincount{mincounts}.bam")
     params: mincounts = lambda wc: wc.mincounts
     resources:
-        mem_mb=500
+        mem_mb=2000
     wildcard_constraints:
         mincounts='\d+', minmapq='\d+'
     run:
@@ -156,7 +156,7 @@ rule index_deduplicate_countfiltered_reads:
     wildcard_constraints:
         mincounts='\d+', minmapq='\d+'
     resources:
-        mem_mb=500
+        mem_mb=2000
     shell: "samtools index {input}"
 
 
@@ -167,9 +167,9 @@ rule create_bigwig:
     output: join(OUT_DIR, "{reference}", "{sample}.barcoded.minmapq{minmapq}.dedup.mincount{mincounts}.bw")
     wildcard_constraints:
         mincounts='\d+', minmapq='\d+'
-    threads: 10
+    threads: 5
     resources:
-        mem_mb=1000
+        mem_mb=10000
     shell:
         "bamCoverage -b {input[0]} -o {output} -p {threads}"
 

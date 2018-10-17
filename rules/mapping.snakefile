@@ -50,7 +50,7 @@ rule make_genome_size_table:
     input: expand(join(OUT_DIR, '{{reference}}', '{sample}.cleanchrom.bam'), sample=samples.Name.tolist())
     output: join(OUT_DIR, '{reference}', '{reference}.genome')
     resources:
-        mem_mb=400
+        mem_mb=1000
     run:
         make_genome_size(input[0], output[0])
 
