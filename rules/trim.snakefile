@@ -6,10 +6,14 @@ if config['trim_reads'] == 'flexbar':
         input:
             reads=get_trim_inputs
         params:
-            target=TRIM_PATTERN,
+            target=join(OUT_DIR, 'trimmed', '{sample}'),
             paired=is_paired
-        output: TRIM_PATTERN + '_1.fastq', TRIM_PATTERN + '_2.fastq', TRIM_PATTERN + '.fastq'
-        threads: 40
+        output: join(OUT_DIR, 'trimmed', '{sample}_1.fastq.gz'),
+                join(OUT_DIR, 'trimmed', '{sample}_2.fastq.gz'),
+                join(OUT_DIR, 'trimmed', '{sample}.fastq.gz')
+        threads: 10
+        resources:
+           mem_mb=1000
         log: join(LOG_DIR, 'flexbar_{sample}.log')
         run:
             cmd = 'flexbar '
@@ -20,13 +24,14 @@ if config['trim_reads'] == 'flexbar':
             if 'adapters' in config:
                 cmd += ' -a {}'.format(config['adapters'])
             cmd += " -f i1.8 -u 10 -ae RIGHT -at 1.0 --threads {threads} "
+            cmd += " --zip-output GZ "
             cmd += " --min-read-length 50  > {log} && "
             if params.paired:
-                cmd += " ln -s {params.target}_1.fastq {params.target}.fastq; "
+                cmd += " ln -s {params.target}_1.fastq.gz {params.target}.fastq.gz; "
             else:
                 # create fake output files for single-end data
-                cmd += " ln -s {params.target}.fastq {params.target}_1.fastq; "
-                cmd += " ln -s {params.target}.fastq {params.target}_2.fastq; "
+                cmd += " ln -s {params.target}.fastq.gz {params.target}_1.fastq.gz; "
+                cmd += " ln -s {params.target}.fastq.gz {params.target}_2.fastq.gz; "
             shell(cmd)
     
 elif config['trim_reads'] == 'trim_galore':
@@ -35,13 +40,16 @@ elif config['trim_reads'] == 'trim_galore':
         input:
             reads=get_trim_inputs
         params:
-            target=TRIM_PATTERN,
+            target=join(OUT_DIR, 'trimmed'),
             paired=is_paired,
+            sample=lambda wc: wc.sample,
             reads= get_trimgalore_output
-        output: TRIM_PATTERN + '_1.fastq.gz', \
-                TRIM_PATTERN + '_2.fastq.gz'
-                #TRIM_PATTERN + '.fastq', directory(TRIM_PATTERN)
-        threads: 40
+        output: join(OUT_DIR, 'trimmed', '{sample}_1.fastq.gz'),
+                join(OUT_DIR, 'trimmed', '{sample}_2.fastq.gz'),
+                join(OUT_DIR, 'trimmed', '{sample}.fastq.gz')
+        threads: 10
+        resources:
+           mem_mb=1000
         log: join(LOG_DIR, 'trimgalore_{sample}.log')
         run:
             cmd = 'mkdir -p {params.target} && trim_galore '
@@ -51,16 +59,14 @@ elif config['trim_reads'] == 'trim_galore':
                 cmd += " {input.reads[0]} "
     
             cmd += " -o {params.target} --gzip"
-            if 'adapters' in config:
-                cmd += ' -a {}'.format(config['adapters'])
             cmd += " >> {log} 2>&1 && "
     
             # rename the trim galore output.
             if params.paired:
-                cmd += " mv {params.target}/{params.reads[0]} {params.target}_1.fastq.gz; "
-                cmd += " mv {params.target}/{params.reads[1]} {params.target}_2.fastq.gz; "
+                cmd += " mv {params.target}/{params.reads[0]} {params.target}/{params.sample}_1.fastq.gz; "
+                cmd += " mv {params.target}/{params.reads[1]} {params.target}/{params.sample}_2.fastq.gz; "
             else:
-                cmd += " mv {params.target}/{params.reads[0]} {params.target}_1.fastq.gz; "
+                cmd += " mv {params.target}/{params.reads[0]} {params.target}/{params.sample}.fastq.gz; "
 
             # create fake output files
             # this allows us to use a single rule for 

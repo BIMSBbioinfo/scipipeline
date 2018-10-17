@@ -11,9 +11,6 @@ from utils.count_matrix import make_barcode_table
 
 
 PSGENOME_OUTDIR = join(OUT_DIR, 'barcodes')
-# Trimmed reads
-TRIM_PATTERN = join(OUT_DIR, '{sample}_trimmed')
-
 
 def is_paired(wildcards):
     if os.path.exists(samples[samples.Name == wildcards.sample].read2.tolist()[0]):
@@ -61,7 +58,7 @@ def get_trimgalore_output(wildcards):
     
 def get_mapping_inputs(wildcards):
 
-    prefix = join(OUT_DIR, wildcards.sample + '_trimmed')
+    prefix = join(OUT_DIR, 'trimmed', wildcards.sample )
 
     if is_paired(wildcards):
         return [prefix + '_1.fastq.gz', prefix + '_2.fastq.gz']
