@@ -36,13 +36,15 @@ INPUT_ALL.append(expand(rules.plot_barcode_freqs.output, reference=config['refer
 #
 rule plot_barcode_freqs_by_percent_in_peaks:
     """Plot barcode frequency by percent in peaks"""
-    input: x = join(OUT_DIR, '{reference}', 'countmatrix', 'genomebins_{sample}_binsize{binsize}.minmapq{minmapq}.mincount{mincounts}.tab'), \
+    input: x = expand(join(OUT_DIR, '{{reference}}', 'countmatrix', 'genomebins_{{sample}}_binsize{binsize}.minmapq{{minmapq}}.mincount{{mincounts}}.tab'), binsize=config['binsize']), \
            y = join(OUT_DIR, '{reference}', 'countmatrix', 'peak_counts_{sample}_flank{flank}.minmapq{minmapq}.mincount{mincounts}.tab')
     output: report(join(OUT_DIR, "{reference}", "report", "freq_by_peak_percentage.{sample}.minmapq{minmapq}.mincount{mincounts}.flank{flank}.binsize{binsize}.svg"), category="Barcode frequency")
     resources:
       mem_mb=4000
     run:
-        plot_barcode_frequency_by_peak_percentage(input.x, input.y, output[0])
+        # input.x as a list containing different binsizes.
+        # however, it is sufficient to just use one of them.
+        plot_barcode_frequency_by_peak_percentage(input.x[0], input.y, output[0])
 
 INPUT_ALL.append(expand(rules.plot_barcode_freqs_by_percent_in_peaks.output, 
                         reference=config['reference'], 
