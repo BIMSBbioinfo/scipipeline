@@ -4,7 +4,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 plt.switch_backend('agg')
 import seaborn as sns
-sns.set(style='whitegrid')
+sns.set(style='white')
 
 def plot_barcode_frequencies(tab_file, plotname):
     """ Plot barcode frequency distribution"""
