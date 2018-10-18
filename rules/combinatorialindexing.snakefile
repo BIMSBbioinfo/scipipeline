@@ -4,8 +4,8 @@
 
 rule sort_mapping_by_name:
     """Sort the reads by name"""
-    input: join(OUT_DIR, '{reference}', '{sample}.cleanchrom.bam')
-    output: join(OUT_DIR, '{reference}', '{sample}.namesorted.bam')
+    input: join(OUT_DIR, '{sample}', '{reference}', 'mapping', 'sample.cleanchrom.bam')
+    output: join(OUT_DIR, '{sample}', '{reference}', 'mapping', 'sample.namesorted.bam')
     resources:
         mem_mb=10000
     wildcard_constraints:
@@ -92,8 +92,8 @@ rule split_reads_by_index:
                         expand(join(PSGENOME_OUTDIR,
                                 'barcode.{barcode}.namesorted.bam'),
                                 barcode=samples[samples.Name==wc.sample].barcodes.tolist()[0].split(';')),
-       read_aln=join(OUT_DIR, '{reference}', '{sample}.namesorted.bam')
-    output: join(OUT_DIR, "{reference}", "{sample}.barcoded.bam")
+       read_aln=join(OUT_DIR, '{sample}', '{reference}', 'mapping', 'sample.namesorted.bam')
+    output: join(OUT_DIR, '{sample}', "{reference}", 'mapping', "sample.barcoded.bam")
     resources:
         mem_mb=1000
     params:

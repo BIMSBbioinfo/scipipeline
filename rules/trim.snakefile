@@ -6,11 +6,11 @@ if config['trim_reads'] == 'flexbar':
         input:
             reads=get_trim_inputs
         params:
-            target=join(OUT_DIR, 'trimmed', '{sample}'),
+            target=join(OUT_DIR, '{sample}', 'trimmed', 'sample'),
             paired=is_paired
-        output: join(OUT_DIR, 'trimmed', '{sample}_1.fastq.gz'),
-                join(OUT_DIR, 'trimmed', '{sample}_2.fastq.gz'),
-                join(OUT_DIR, 'trimmed', '{sample}.fastq.gz')
+        output: join(OUT_DIR, '{sample}', 'trimmed', 'sample_1.fastq.gz'),
+                join(OUT_DIR, '{sample}', 'trimmed', 'sample_2.fastq.gz'),
+                join(OUT_DIR, '{sample}', 'trimmed', 'sample.fastq.gz')
         threads: 10
         resources:
            mem_mb=1000
@@ -44,9 +44,9 @@ elif config['trim_reads'] == 'trim_galore':
             paired=is_paired,
             sample=lambda wc: wc.sample,
             reads= get_trimgalore_output
-        output: join(OUT_DIR, 'trimmed', '{sample}_1.fastq.gz'),
-                join(OUT_DIR, 'trimmed', '{sample}_2.fastq.gz'),
-                join(OUT_DIR, 'trimmed', '{sample}.fastq.gz')
+        output: join(OUT_DIR, '{sample}', 'trimmed', 'sample_1.fastq.gz'),
+                join(OUT_DIR, '{sample}', 'trimmed', 'sample_2.fastq.gz'),
+                join(OUT_DIR, '{sample}', 'trimmed', 'sample.fastq.gz')
         threads: 10
         resources:
            mem_mb=1000

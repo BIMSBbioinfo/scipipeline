@@ -2,7 +2,7 @@
 rule quality_control_trimmed:
     """Quality control with fastqc"""
     input: get_mapping_inputs
-    output: directory(join(OUT_DIR, 'fastqc_trimmed', '{sample}'))
+    output: directory(join(OUT_DIR, '{sample}', 'fastqc_trimmed'))
     resources:
       mem_mb=3000
     threads: 1
@@ -14,7 +14,7 @@ INPUT_ALL.append(expand(rules.quality_control_trimmed.output, sample=samples.Nam
 rule quality_control_raw:
     """Quality control with fastqc"""
     input: get_trim_inputs
-    output: directory(join(OUT_DIR, 'fastqc_raw', '{sample}'))
+    output: directory(join(OUT_DIR, '{sample}', 'fastqc_raw'))
     resources:
       mem_mb=3000
     threads: 1

@@ -9,8 +9,8 @@ from utils.count_matrix import get_barcode_frequency_genomewide
 # ------------------------ #
 #
 rule determine_barcode_frequencies:
-    input: join(OUT_DIR, "{reference}", "{sample}.barcoded.minmapq{minmapq}.dedup.mincount{mincounts}.bam")
-    output: join(OUT_DIR, "{reference}", "report", "barcode_frequencies.{sample}.minmapq{minmapq}.mincount{mincounts}.tab")
+    input: join(OUT_DIR, "{sample}", "{reference}", 'mapping', "sample.barcoded.minmapq{minmapq}.dedup.mincount{mincounts}.bam")
+    output: join(OUT_DIR, "{sample}", "{reference}", "report", "barcode_frequencies.minmapq{minmapq}.mincount{mincounts}.tab")
     resources:
       mem_mb=1000
     run:
@@ -21,8 +21,8 @@ rule determine_barcode_frequencies:
 #
 rule plot_barcode_freqs:
     """Plot barcode frequency"""
-    input: join(OUT_DIR, "{reference}", "report", "barcode_frequencies.{sample}.minmapq{minmapq}.mincount{mincounts}.tab")
-    output: report(join(OUT_DIR, "{reference}", "report", "barcode_frequencies.{sample}.minmapq{minmapq}.mincount{mincounts}.svg"), category="Barcode frequency")
+    input: join(OUT_DIR, "{sample}", "{reference}", "report", "barcode_frequencies.minmapq{minmapq}.mincount{mincounts}.tab")
+    output: report(join(OUT_DIR, "{sample}", "{reference}", "report", "barcode_frequencies.minmapq{minmapq}.mincount{mincounts}.svg"), category="Barcode frequency")
     resources:
       mem_mb=1000
     run:
@@ -36,9 +36,9 @@ INPUT_ALL.append(expand(rules.plot_barcode_freqs.output, reference=config['refer
 #
 rule plot_barcode_freqs_by_percent_in_peaks:
     """Plot barcode frequency by percent in peaks"""
-    input: x = expand(join(OUT_DIR, '{{reference}}', 'countmatrix', 'genomebins_{{sample}}_binsize{binsize}.minmapq{{minmapq}}.mincount{{mincounts}}.tab'), binsize=config['binsize']), \
-           y = join(OUT_DIR, '{reference}', 'countmatrix', 'peak_counts_{sample}_flank{flank}.minmapq{minmapq}.mincount{mincounts}.tab')
-    output: report(join(OUT_DIR, "{reference}", "report", "freq_by_peak_percentage.{sample}.minmapq{minmapq}.mincount{mincounts}.flank{flank}.binsize{binsize}.svg"), category="Barcode frequency")
+    input: x = expand(join(OUT_DIR, '{{sample}}', '{{reference}}', 'countmatrix', 'genomebins_binsize{binsize}.minmapq{{minmapq}}.mincount{{mincounts}}.tab'), binsize=config['binsize']), \
+           y = join(OUT_DIR, "{sample}", '{reference}', 'countmatrix', 'peakcounts_flank{flank}.minmapq{minmapq}.mincount{mincounts}.tab')
+    output: report(join(OUT_DIR, "{sample}", "{reference}", "report", "reads_in_peak_percentage.minmapq{minmapq}.mincount{mincounts}.flank{flank}.binsize{binsize}.svg"), category="Barcode frequency")
     resources:
       mem_mb=4000
     run:
@@ -58,8 +58,8 @@ INPUT_ALL.append(expand(rules.plot_barcode_freqs_by_percent_in_peaks.output,
 #
 rule plot_fragment_size_dist:
     """Plot fragment size distribution"""
-    input: join(OUT_DIR, "{reference}", "{sample}.barcoded.minmapq{minmapq}.dedup.mincount{mincounts}.bam")
-    output: report(join(OUT_DIR, "{reference}", "report", "{sample}.fragmentsize_minmapq{minmapq}_mincount{mincounts}.svg"), category="Fragment size distribution")
+    input: join(OUT_DIR, "{sample}", "{reference}", 'mapping', "sample.barcoded.minmapq{minmapq}.dedup.mincount{mincounts}.bam")
+    output: report(join(OUT_DIR, "{sample}", "{reference}", "report", "fragmentsizedist_minmapq{minmapq}_mincount{mincounts}.svg"), category="Fragment size distribution")
     resources:
       mem_mb=1000
     run:
@@ -75,8 +75,8 @@ INPUT_ALL.append(expand(rules.plot_fragment_size_dist.output,
 # ------------------------ #
 #
 rule make_multiqc_report:
-    input: expand(join(OUT_DIR, "{reference}", "macs2", \
-                       "{sample}.minmapq{minmapq}.mincount{mincounts}_summits.bed"), \
+    input: expand(join(OUT_DIR, "{sample}", "{reference}", "peaks", \
+                       "sample.minmapq{minmapq}.mincount{mincounts}_summits.bed"), \
                   reference=config['reference'], \
                   sample=samples.Name.tolist(), \
                   minmapq=config['min_mapq'], \

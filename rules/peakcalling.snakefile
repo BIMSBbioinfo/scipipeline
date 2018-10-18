@@ -4,11 +4,11 @@
 # report barcode frequencies
 
 rule peak_calling_on_aggregate:
-    input: join(OUT_DIR, "{reference}", "{sample}.barcoded.minmapq{minmapq}.dedup.mincount{mincounts}.bam")
-    output: join(OUT_DIR, "{reference}", "macs2", "{sample}.minmapq{minmapq}.mincount{mincounts}_peaks.narrowPeak"), \
-            join(OUT_DIR, "{reference}", "macs2", "{sample}.minmapq{minmapq}.mincount{mincounts}_summits.bed")
-    params: name='{sample}.minmapq{minmapq}.mincount{mincounts}',
-            outdir = join(OUT_DIR, "{reference}", "macs2"),
+    input: join(OUT_DIR, "{sample}", "{reference}", 'mapping', "sample.barcoded.minmapq{minmapq}.dedup.mincount{mincounts}.bam")
+    output: join(OUT_DIR, "{sample}", "{reference}", "peaks", "sample.minmapq{minmapq}.mincount{mincounts}_peaks.narrowPeak"), \
+            join(OUT_DIR, "{sample}", "{reference}", "peaks", "sample.minmapq{minmapq}.mincount{mincounts}_summits.bed")
+    params: name='sample.minmapq{minmapq}.mincount{mincounts}',
+            outdir = join(OUT_DIR, "{reference}", "peaks"),
             foption = lambda wc: 'BAMPE' if is_paired(wc) else 'BAM',
             gsize = lambda wc: config['reference'][wc.reference]['macs_gsize']
     resources:
@@ -28,9 +28,9 @@ INPUT_ALL.append(expand(rules.peak_calling_on_aggregate.output,
 rule merge_overlapping_peaks:
     """ Peak summits extended by flank, merged, sorted and trimmed to same size"""
     input: 
-       inbed = join(OUT_DIR, "{reference}", "macs2", "{sample}.minmapq{minmapq}.mincount{mincounts}_summits.bed"), \
-       genomesize = join(OUT_DIR, "{reference}", "{reference}.genome")
-    output: join(OUT_DIR, "{reference}", "macs2", "{sample}.minmapq{minmapq}.mincount{mincounts}.flank{flk}_summits.bed")
+       inbed = join(OUT_DIR, "{sample}", "{reference}", "peaks", "sample.minmapq{minmapq}.mincount{mincounts}_summits.bed"), \
+       genomesize = join(OUT_DIR, '{sample}', "{reference}", 'mapping', "{reference}.genome")
+    output: join(OUT_DIR, "{sample}", "{reference}", "peaks", "sample.minmapq{minmapq}.mincount{mincounts}.flank{flk}_summits.bed")
     params:
        flks = lambda wc: wc.flk
     resources:

@@ -6,10 +6,10 @@ import sys
 
 rule make_counting_bins:
     input:
-        bams = join(OUT_DIR, "{reference}", "{sample}.barcoded.minmapq{minmapq}.dedup.mincount{mincounts}.bam"),
-        bai = join(OUT_DIR, "{reference}", "{sample}.barcoded.minmapq{minmapq}.dedup.mincount{mincounts}.bam.bai")
+        bams = join(OUT_DIR, '{sample}', "{reference}", 'mapping', "sample.barcoded.minmapq{minmapq}.dedup.mincount{mincounts}.bam"),
+        bai = join(OUT_DIR, '{sample}', "{reference}", 'mapping', "sample.barcoded.minmapq{minmapq}.dedup.mincount{mincounts}.bam.bai")
     output:
-        bins = join(OUT_DIR, '{reference}', 'countmatrix', 'genomebins_{sample}_binsize{binsize}.minmapq{minmapq}.mincount{mincounts}.bed')
+        bins = join(OUT_DIR, '{sample}', '{reference}', 'countmatrix', 'genomebins_binsize{binsize}.minmapq{minmapq}.mincount{mincounts}.bed')
     wildcard_constraints:
        minmapq='\d+', mincounts='\d+'
     resources:
@@ -23,9 +23,9 @@ rule make_counting_bins:
 
 rule make_barcode_table:
     input:
-        bams = join(OUT_DIR, "{reference}", "{sample}.barcoded.bam"),
+        bams = join(OUT_DIR, '{sample}', "{reference}", 'mapping', "sample.barcoded.bam"),
     output:
-        barcodes = join(OUT_DIR, '{reference}', 'countmatrix', '{sample}_barcodes.tsv')
+        barcodes = join(OUT_DIR, '{sample}', '{reference}', 'countmatrix', 'sample_barcodes.tsv')
     resources:
         mem_mb=1000
     run:
@@ -38,12 +38,12 @@ rule make_barcode_table:
 rule counting_reads_in_bins:
     """Counting reads per barcode"""
     input:
-        bams = join(OUT_DIR, "{reference}", "{sample}.barcoded.minmapq{minmapq}.dedup.mincount{mincounts}.bam"),
-        bai = join(OUT_DIR, "{reference}", "{sample}.barcoded.minmapq{minmapq}.dedup.mincount{mincounts}.bam.bai"),
-        bins = join(OUT_DIR, '{reference}', 'countmatrix', 'genomebins_{sample}_binsize{binsize}.minmapq{minmapq}.mincount{mincounts}.bed')
+        bams = join(OUT_DIR, '{sample}', "{reference}", 'mapping', "sample.barcoded.minmapq{minmapq}.dedup.mincount{mincounts}.bam"),
+        bai = join(OUT_DIR, '{sample}', "{reference}", 'mapping', "sample.barcoded.minmapq{minmapq}.dedup.mincount{mincounts}.bam.bai"),
+        bins = join(OUT_DIR, '{sample}', '{reference}', 'countmatrix', 'genomebins_binsize{binsize}.minmapq{minmapq}.mincount{mincounts}.bed')
     output:
-        countmatrix = join(OUT_DIR, '{reference}', 'countmatrix', 'genomebins_{sample}_binsize{binsize}.minmapq{minmapq}.mincount{mincounts}.tab'),
-        cellsum = join(OUT_DIR, '{reference}', 'countmatrix', 'genomebins_{sample}_binsize{binsize}.minmapq{minmapq}.mincount{mincounts}.tab.counts')
+        countmatrix = join(OUT_DIR, '{sample}', '{reference}', 'countmatrix', 'genomebins_binsize{binsize}.minmapq{minmapq}.mincount{mincounts}.tab'),
+        cellsum = join(OUT_DIR, '{sample}', '{reference}', 'countmatrix', 'genomebins_binsize{binsize}.minmapq{minmapq}.mincount{mincounts}.tab.counts')
     wildcard_constraints:
        minmapq='\d+', mincounts='\d+'
     resources:
@@ -71,11 +71,11 @@ INPUT_ALL.append(expand(rules.counting_reads_in_bins.output,
 rule counting_reads_in_peaks:
     """Counting reads per barcode"""
     input:
-        bams = join(OUT_DIR, "{reference}", "{sample}.barcoded.minmapq{minmapq}.dedup.mincount{mincounts}.bam"),
-        bai = join(OUT_DIR, "{reference}", "{sample}.barcoded.minmapq{minmapq}.dedup.mincount{mincounts}.bam.bai"),
-        regions = join(OUT_DIR, "{reference}", "macs2", "{sample}.minmapq{minmapq}.mincount{mincounts}.flank{flank}_summits.bed")
-    output: join(OUT_DIR, '{reference}', 'countmatrix', 'peak_counts_{sample}_flank{flank}.minmapq{minmapq}.mincount{mincounts}.tab'),
-            join(OUT_DIR, '{reference}', 'countmatrix', 'peak_counts_{sample}_flank{flank}.minmapq{minmapq}.mincount{mincounts}.tab.counts')
+        bams = join(OUT_DIR, '{sample}', "{reference}", 'mapping', "sample.barcoded.minmapq{minmapq}.dedup.mincount{mincounts}.bam"),
+        bai = join(OUT_DIR, '{sample}', "{reference}", 'mapping', "sample.barcoded.minmapq{minmapq}.dedup.mincount{mincounts}.bam.bai"),
+        regions = join(OUT_DIR, '{sample}', "{reference}", "peaks", "sample.minmapq{minmapq}.mincount{mincounts}.flank{flank}_summits.bed")
+    output: join(OUT_DIR, '{sample}', '{reference}', 'countmatrix', 'peakcounts_flank{flank}.minmapq{minmapq}.mincount{mincounts}.tab'),
+            join(OUT_DIR, '{sample}', '{reference}', 'countmatrix', 'peakcounts_flank{flank}.minmapq{minmapq}.mincount{mincounts}.tab.counts')
     wildcard_constraints:
        minmapq='\d+', mincounts='\d+', flank='\d+'
     resources:

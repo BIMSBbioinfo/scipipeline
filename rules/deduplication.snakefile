@@ -6,8 +6,8 @@ from utils.cleanup_alignments import remove_low_cellcount_reads
 
 rule remove_low_mapq_reads:
     """Remove reads with low mapping quality"""
-    input: join(OUT_DIR, "{reference}", "{sample}.barcoded.bam")
-    output: join(OUT_DIR, "{reference}", "{sample}.barcoded.minmapq{minmapq}.bam")
+    input: join(OUT_DIR, "{sample}", "{reference}", 'mapping', "sample.barcoded.bam")
+    output: join(OUT_DIR, "{sample}", "{reference}", 'mapping', "sample.barcoded.minmapq{minmapq}.bam")
     params: minmapq = lambda wc: wc.minmapq
     wildcard_constraints:
        minmapq='\d+'
@@ -21,8 +21,8 @@ rule remove_low_mapq_reads:
 
 rule sort_split_reads:
     """Sort split reads"""
-    input: join(OUT_DIR, "{reference}", "{sample}.barcoded.minmapq{minmapq}.bam")
-    output: join(OUT_DIR, "{reference}", "{sample}.barcoded.minmapq{minmapq}.sorted.bam")
+    input: join(OUT_DIR, "{sample}", "{reference}", 'mapping', "sample.barcoded.minmapq{minmapq}.bam")
+    output: join(OUT_DIR, "{sample}", "{reference}", 'mapping', "sample.barcoded.minmapq{minmapq}.sorted.bam")
     wildcard_constraints:
        minmapq='\d+'
     resources:
@@ -34,8 +34,8 @@ rule sort_split_reads:
 
 rule index_minmapq_reads:
     """Deduplicate split reads"""
-    input: join(OUT_DIR, "{reference}", "{sample}.barcoded.minmapq{minmapq}.sorted.bam")
-    output: join(OUT_DIR, "{reference}", "{sample}.barcoded.minmapq{minmapq}.sorted.bam.bai")
+    input: join(OUT_DIR, "{sample}", "{reference}", 'mapping', "sample.barcoded.minmapq{minmapq}.sorted.bam")
+    output: join(OUT_DIR, "{sample}", "{reference}", 'mapping', "sample.barcoded.minmapq{minmapq}.sorted.bam.bai")
     wildcard_constraints:
         minmapq='\d+'
     resources:
@@ -48,8 +48,8 @@ rule index_minmapq_reads:
 
 rule index_deduplicate_reads:
     """Deduplicate split reads"""
-    input: join(OUT_DIR, "{reference}", "{sample}.barcoded.minmapq{minmapq}.dedup.bam")
-    output: join(OUT_DIR, "{reference}", "{sample}.barcoded.minmapq{minmapq}.dedup.bam.bai")
+    input: join(OUT_DIR, "{sample}", "{reference}", 'mapping', "sample.barcoded.minmapq{minmapq}.dedup.bam")
+    output: join(OUT_DIR, "{sample}", "{reference}", 'mapping', "sample.barcoded.minmapq{minmapq}.dedup.bam.bai")
     wildcard_constraints:
         minmapq='\d+'
     resources:
@@ -61,10 +61,10 @@ rule index_deduplicate_reads:
 
 rule deduplicate_split_reads_by_barcode:
     """Deduplicate split reads"""
-    input: join(OUT_DIR, "{reference}", "{sample}.barcoded.minmapq{minmapq}.sorted.bam"), \
-           join(OUT_DIR, "{reference}", "{sample}.barcoded.minmapq{minmapq}.sorted.bam.bai")
-    output: outbam=join(OUT_DIR, "{reference}", "{sample}.barcoded.minmapq{minmapq}.dedup.bam"), \
-       summary=join(OUT_DIR, "{reference}", "report", "markdup_metrics.{sample}.minmap{minmapq}.txt")
+    input: join(OUT_DIR, "{sample}", "{reference}", 'mapping', "sample.barcoded.minmapq{minmapq}.sorted.bam"), \
+           join(OUT_DIR, "{sample}", "{reference}", 'mapping', "sample.barcoded.minmapq{minmapq}.sorted.bam.bai")
+    output: outbam=join(OUT_DIR, '{sample}', "{reference}", 'mapping', "sample.barcoded.minmapq{minmapq}.dedup.bam"), \
+       summary=join(OUT_DIR, '{sample}', "{reference}", "report", "markdup_metrics.minmap{minmapq}.txt")
     params: picard=config['picard_jarpath']
     threads: 10
     log: join(LOG_DIR, 'picard_markduplicates_{sample}_{reference}_minmap{minmapq}.log')
@@ -86,8 +86,8 @@ INPUT_ALL.append(expand(rules.deduplicate_split_reads_by_barcode.output,
 
 rule library_complexity_before_dedup:
     """Deduplicate split reads"""
-    input: join(OUT_DIR, "{reference}", "{sample}.barcoded.minmapq{minmapq}.sorted.bam")
-    output: join(OUT_DIR, "{reference}", "report", "library_complexity_beforededup.{sample}.minmap{minmapq}.txt")
+    input: join(OUT_DIR, "{sample}", "{reference}", 'mapping', "sample.barcoded.minmapq{minmapq}.sorted.bam")
+    output: join(OUT_DIR, "{sample}", "{reference}", "report", "library_complexity_beforededup.minmap{minmapq}.txt")
     params: picard=config['picard_jarpath']
     threads: 10
     resources:
@@ -108,8 +108,8 @@ INPUT_ALL.append(expand(rules.library_complexity_before_dedup.output,
 
 rule library_complexity_after_dedup:
     """Deduplicate split reads"""
-    input: join(OUT_DIR, "{reference}", "{sample}.barcoded.minmapq{minmapq}.dedup.bam")
-    output: join(OUT_DIR, "{reference}", "report", "library_complexity_afterdedup.{sample}.minmap{minmapq}.txt")
+    input: join(OUT_DIR, "{sample}", "{reference}", 'mapping', "sample.barcoded.minmapq{minmapq}.dedup.bam")
+    output: join(OUT_DIR, "{sample}", "{reference}", "report", "library_complexity_afterdedup.minmap{minmapq}.txt")
     params: picard=config['picard_jarpath']
     threads: 10
     log: join(LOG_DIR, 'picard_estlibcompl_afterdedup_{sample}_{reference}_minmapq{minmapq}.log')
@@ -130,8 +130,8 @@ INPUT_ALL.append(expand(rules.library_complexity_after_dedup.output,
 
 rule remove_low_fragmentcount_barcodes:
     """Deduplicate split reads"""
-    input: join(OUT_DIR, "{reference}", "{sample}.barcoded.minmapq{minmapq}.dedup.bam")
-    output: join(OUT_DIR, "{reference}", "{sample}.barcoded.minmapq{minmapq}.dedup.mincount{mincounts}.bam")
+    input: join(OUT_DIR, "{sample}", "{reference}", 'mapping', "sample.barcoded.minmapq{minmapq}.dedup.bam")
+    output: join(OUT_DIR, "{sample}", "{reference}", 'mapping', "sample.barcoded.minmapq{minmapq}.dedup.mincount{mincounts}.bam")
     params: mincounts = lambda wc: wc.mincounts
     resources:
         mem_mb=2000
@@ -151,8 +151,8 @@ INPUT_ALL.append(expand(rules.remove_low_fragmentcount_barcodes.output,
 
 rule index_deduplicate_countfiltered_reads:
     """Deduplicate split reads"""
-    input: join(OUT_DIR, "{reference}", "{sample}.barcoded.minmapq{minmapq}.dedup.mincount{mincounts}.bam")
-    output: join(OUT_DIR, "{reference}", "{sample}.barcoded.minmapq{minmapq}.dedup.mincount{mincounts}.bam.bai")
+    input: join(OUT_DIR, "{sample}", "{reference}", 'mapping', "sample.barcoded.minmapq{minmapq}.dedup.mincount{mincounts}.bam")
+    output: join(OUT_DIR, "{sample}", "{reference}", 'mapping', "sample.barcoded.minmapq{minmapq}.dedup.mincount{mincounts}.bam.bai")
     wildcard_constraints:
         mincounts='\d+', minmapq='\d+'
     resources:
@@ -162,9 +162,9 @@ rule index_deduplicate_countfiltered_reads:
 
 rule create_bigwig:
     """Create bigwig of alignment"""
-    input: join(OUT_DIR, "{reference}", "{sample}.barcoded.minmapq{minmapq}.dedup.mincount{mincounts}.bam"),
-           join(OUT_DIR, "{reference}", "{sample}.barcoded.minmapq{minmapq}.dedup.mincount{mincounts}.bam.bai")
-    output: join(OUT_DIR, "{reference}", "{sample}.barcoded.minmapq{minmapq}.dedup.mincount{mincounts}.bw")
+    input: join(OUT_DIR, "{sample}", "{reference}", 'mapping', "sample.barcoded.minmapq{minmapq}.dedup.mincount{mincounts}.bam"),
+           join(OUT_DIR, "{sample}", "{reference}", 'mapping', "sample.barcoded.minmapq{minmapq}.dedup.mincount{mincounts}.bam.bai")
+    output: join(OUT_DIR, "{sample}", "{reference}", 'mapping', "sample.barcoded.minmapq{minmapq}.dedup.mincount{mincounts}.bw")
     wildcard_constraints:
         mincounts='\d+', minmapq='\d+'
     threads: 5

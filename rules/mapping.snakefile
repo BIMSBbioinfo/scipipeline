@@ -8,7 +8,7 @@ def _bowtie_input_type_read(wildcards):
 rule read_mapping:
     "Maps reads against reference genome"
     input: get_mapping_inputs
-    output: join(OUT_DIR, '{reference}', '{sample}.bam')
+    output: join(OUT_DIR, '{sample}', '{reference}', 'mapping', 'sample.bam')
     wildcard_constraints: sample='\w+'
     params:
         genome=lambda wildcards: config['reference'][wildcards.reference]['bowtie2index'],
@@ -35,8 +35,8 @@ rule read_mapping:
 INPUT_ALL.append(expand(rules.read_mapping.output, sample=samples.Name.tolist(), reference=config['reference']))
 
 rule remove_chromosomes:
-    input: join(OUT_DIR, '{reference}', '{sample}.bam')
-    output: join(OUT_DIR, '{reference}', '{sample}.cleanchrom.bam')
+    input: join(OUT_DIR, '{sample}', '{reference}', 'mapping', 'sample.bam')
+    output: join(OUT_DIR, '{sample}', '{reference}', 'mapping', 'sample.cleanchrom.bam')
     params: chroms = lambda wc: config['reference'][wc.reference]['removechroms']
     resources:
         mem_mb=1000
@@ -47,12 +47,12 @@ INPUT_ALL.append(expand(rules.remove_chromosomes.output, sample=samples.Name.tol
 
 
 rule make_genome_size_table:
-    input: expand(join(OUT_DIR, '{{reference}}', '{sample}.cleanchrom.bam'), sample=samples.Name.tolist())
-    output: join(OUT_DIR, '{reference}', '{reference}.genome')
+    input: join(OUT_DIR, '{sample}', '{reference}', 'mapping', 'sample.cleanchrom.bam')
+    output: join(OUT_DIR, '{sample}', '{reference}', 'mapping', '{reference}.genome')
     resources:
         mem_mb=1000
     run:
         make_genome_size(input[0], output[0])
 
-INPUT_ALL.append(expand(rules.make_genome_size_table.output, reference=config['reference']))
+INPUT_ALL.append(expand(rules.make_genome_size_table.output, reference=config['reference'], sample=samples.Name.tolist()))
 

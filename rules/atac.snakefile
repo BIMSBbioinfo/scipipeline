@@ -58,7 +58,7 @@ def get_trimgalore_output(wildcards):
     
 def get_mapping_inputs(wildcards):
 
-    prefix = join(OUT_DIR, 'trimmed', wildcards.sample )
+    prefix = join(OUT_DIR, wildcards.sample, 'trimmed', 'sample' )
 
     if is_paired(wildcards):
         return [prefix + '_1.fastq.gz', prefix + '_2.fastq.gz']
