@@ -2,7 +2,7 @@
 
 
 <div align="center">
-<img src="drawing.svg" alt="sciATACseq Pipeline" width=70%></>
+<img src="drawing.png" alt="sciATACseq Pipeline" width=70%></>
 </div>
 
 
