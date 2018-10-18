@@ -1,8 +1,22 @@
-# single-cell ATAC-seq
+# single-cell combinatorial indexing ATAC-seq pipeline
 
-This repository contains code for analysing single-cell ATAC-seq dataset.
 
-## Inputs to the pipeline
+<div align="center">
+<img src="drawing.svg" alt="sciATACseq Pipeline" width=70%></>
+</div>
+
+
+## Hallmarks of the pipeline
+
+* Compatible with single-/ paired-end sequencing data
+* Trimming with / without known adapters
+* Alignment against one or more genomes
+* Barcode correction using reference barcodes
+* One or more indexing rounds
+* Multicore or grid-engine cluster-environment supported
+
+
+## Input description
 
 The input of the pipeline depends on whether combinatorial index was used
 or whether the UMIs have been determined beforehand.
@@ -23,17 +37,20 @@ then the set of input files is slightly different
 * (Optional) adapter sequences in fasta format.
 
 
-## What the pipeline produces
+## What the pipeline does
 
 The pipeline performs
-* Read trimming (either using flexbar or trim_galore)
+* Read trimming (either using flexbar or trim_galore depending whether adapter sequences have been provided)
 * Quality control (using fastqc before and after trimming)
 * Read mapping (using bowtie2)
 * Barcode correction using the reference barcodes (by aligning barcode reads against the reference barcodes with bowtie2)
-* Barcode augmentation (appends the barcode to the RG tag)
+* Barcode augmentation (appends the barcode ID to the RG tag of the mapped reads)
 * Barcode-aware deduplication (using Picard MarkDuplicates)
 * Peak calling on the aggregated reads (using MACS2)
 * Count matrix construction: Several count matrices are produced, 1) MACS2-peaks by cells and 2) genome-wide bins by cells. The binsizes and flanking windows can be adjusted in the worflowconfig.yaml file.
+* Determines barcode statistics
+* Generates MultiQC report (in HTML format)
+* Generate snakemake report (in HTML format)
 
 ## Managing dependencies of the environment
 We assume that the project root directory is located at `$PRJ_DIR`
@@ -57,13 +74,13 @@ cd picard
 ./gradlew shadowJar
 ```
 Afterwards edit `workflowconfig.yaml`
-and add 
+and add
 `picard_jarpath: <...>/picard/build/libs/picard.jar`
 
 
 ## Configure the pipeline
 
-Currently the pipeline has three configuration points
+The pipeline has three configuration points
 
 * `workflowconfig.yaml`
 * `samplesheet.tsv`
@@ -139,7 +156,7 @@ picard_jarpath: /path/to/picard.jar
 ```
 ### samplesheet.tsv
 
-This file contains a table 
+This file contains a table
 
 |Name | read1 | read2 | barcodes |
 |-----|-------|-------|----------|
@@ -163,10 +180,10 @@ In the case of sequencing error correction, which might be used for combinatoria
 * reference: Table containing one reference barcode per line or a fasta file containing the reference barcodes.
 
 In case no barcode sequencing error correction should be performed, it is assumed that the reads have already
-been associated with the barcodes. More specifically, 
+been associated with the barcodes. More specifically,
 the barcodes are assumed constitute a prefix of the read names in the samples.
 
-The file barcodesheet.tsv then should contain a table 
+The file barcodesheet.tsv then should contain a table
 
 | Readprefix | Name |
 |------------|------|
@@ -176,9 +193,9 @@ The file barcodesheet.tsv then should contain a table
 
 ## Run the snakemake pipeline
 
-The pipeline can be run on a local computer as well as in a cluster environment.
+The pipeline can be run locally in a grid-engine cluster environment.
 
-In order to run the pipeline locally, issue the following command
+In order to run the pipeline locally, use
 ```
 snakemake -s main.snake --cores <ncores>
 ```
@@ -187,13 +204,14 @@ Alternatively, the pipeline can be run on a cluster environment.
 To this end, the pipeline contains launcher scripts.
 
 If you are allowed to run the pipeline directly from the head node
-invoke `bash runpipeline_local.bash`. In that case, snakemake will run locally
-and all jobs that need to be run to complete the pipeline will be submitted via `qsub`
-to the grid engine.
+invoke `bash runpipeline_local.bash`. In that case, snakemake will run on
+the current node and it will submit the individual jobs that need to be carried
+out via `qsub` to the cluster.
 
 If you are not allowed to run the pipeline on the head node
 you can invoke `bash runpipeline_remote.bash`. This will start snakemake itself via qsub
 on the cluster. From there `runpipeline_local.bash` will be used.
+Note that this assumes that `qsub` can be issues from the node snakemake has been started.
 
 After the pipeline has completed a report document can be generated via
 
@@ -201,7 +219,7 @@ After the pipeline has completed a report document can be generated via
 snakemake -s main.snake --report results.html
 ```
 
-The latter command will create a html report containing some result figures of the analysis,
+The latter command will create a html report containing summary figures of the analysis,
 including barcode frequencies, fragment length distribution, etc.
 
 ## Results
@@ -209,24 +227,21 @@ including barcode frequencies, fragment length distribution, etc.
 The results are organized in the specified output directory as follows:
 
 ```
-|-- trimmed_1.fq, trimmed_2.fq
-|-- <genome_name>
-|     |-- sample.bam
-|     |-- sample.barcoded.minmapq{XX}.dedup.mincount{XX}.bam
-|     |-- sample.barcoded.minmapq{XX}.dedup.mincount{XX}.bw
-|     |-- countmatrix
-|     |      |-- *.tab: count matrix as sparse dataset
-|     |      |-- *.bed: regions associated with the count matrix
-|     |      \-- *.bed: regions associated with the count matrix
-|     |
-|     |-- macs2: macs2 results
-|     \-- report: summary figures and tables
-|
-|-- logs
-|-- fastqc_raw
-|-- fastqc_trimmed
+|-- logs: outputs, warnings, errors of individual tools
 |-- multiqc_data
 |-- multiqc_report.html
+|-- barcodes: barcode alignments
+|-- <sample>
+|    |-- fastqc_<raw/trimmed>: quality control
+|    |-- trimmed: trimmed reads
+|    |-- <reference>
+|    |    |-- mapping: alignment files
+|    |    |-- peaks: peak calling results
+|    |    |-- countmatrix
+|    |    |   |-- *.tab: count matrix as sparse dataset
+|    |    |   |-- *.bed: regions associated with the count matrix
+|    |    |   \-- *.bed: regions associated with the count matrix
+|    |    |-- report: summary figures and tables
 ```
 
 ## Hints
@@ -235,4 +250,3 @@ The results are organized in the specified output directory as follows:
  We suggest to use flexbar with a set of known adapter sequences.
  If the adapters are not known, we suggest to use trim_galore. The latter tool
  is able to infer commonly used sequencing adapters.
-
