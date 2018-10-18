@@ -1,19 +1,19 @@
 # single-cell combinatorial indexing ATAC-seq pipeline
 
-
 <div align="center">
 <img src="drawing.png" alt="sciATACseq Pipeline" width=70%></>
 </div>
 
 
 ## Hallmarks of the pipeline
+The pipeline is implemented using snakemake and has the following features:
 
 * Compatible with single-/ paired-end sequencing data
 * Trimming with / without known adapters
 * Alignment against one or more genomes
 * Barcode correction using reference barcodes
-* One or more indexing rounds
-* Multicore or grid-engine cluster-environment supported
+* Supports One or more combinatorial indexing rounds
+* Supports multicore or grid-engine environment
 
 
 ## Input description
