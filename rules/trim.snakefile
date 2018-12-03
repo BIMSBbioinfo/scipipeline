@@ -40,7 +40,7 @@ elif config['trim_reads'] == 'trim_galore':
         input:
             reads=get_trim_inputs
         params:
-            target=join(OUT_DIR, 'trimmed'),
+            target=join(OUT_DIR, '{sample}', 'trimmed'),
             paired=is_paired,
             sample=lambda wc: wc.sample,
             reads= get_trimgalore_output
@@ -63,10 +63,10 @@ elif config['trim_reads'] == 'trim_galore':
     
             # rename the trim galore output.
             if params.paired:
-                cmd += " mv {params.target}/{params.reads[0]} {params.target}/{params.sample}_1.fastq.gz; "
-                cmd += " mv {params.target}/{params.reads[1]} {params.target}/{params.sample}_2.fastq.gz; "
+                cmd += " ln -s {params.target}/{params.reads[0]} {params.target}/sample_1.fastq.gz; "
+                cmd += " ln -s {params.target}/{params.reads[1]} {params.target}/sample_2.fastq.gz; "
             else:
-                cmd += " mv {params.target}/{params.reads[0]} {params.target}/{params.sample}.fastq.gz; "
+                cmd += " ln -s {params.target}/{params.reads[0]} {params.target}/sample.fastq.gz; "
 
             # create fake output files
             # this allows us to use a single rule for 
