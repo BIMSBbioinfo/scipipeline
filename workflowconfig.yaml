@@ -25,22 +25,22 @@ reference:
     bowtie2index: /data/akalin/wkopp/bowtie2_indices/danrer10/danrer10
     macs_gsize: dm
     removechroms: [chrM, _random, chrUn]
+  urchin:
+    bowtie2index: /data/akalin/wkopp/bowtie2_indices/Spurp3/Spurp3
+    macs_gsize: dm
+    removechroms: [chrM, _random, chrUn]
 
 
 # binsizes to bin the reference genome
 binsize:
-  - 1000
-  - 2000
-  - 5000
   - 10000
 
 # flank to extend the macs2 peak summits at both sides
 peak_flank:
   - 250
-  - 500
 
 # output directory
-output_dir: /data/akalin/wkopp/sciatac_data/
+output_dir: /scratch/AG_Akalin/wkopp/alison_sciatac_output/
 
 # this is the path to the java-based tool picard
 picard_jarpath: /data/akalin/wkopp/picard/build/libs/picard.jar

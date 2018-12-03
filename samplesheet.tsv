@@ -1,2 +1,2 @@
 Name	read1	read2	barcodes
-atac	/scratch/AG_Ohler/Scott/sciATACtest/noSampleSheet/Undetermined_S0_R1_001.fastq.gz	/scratch/AG_Ohler/Scott/sciATACtest/noSampleSheet/Undetermined_S0_R2_001.fastq.gz	I1;I2;I3;I4
+atac	/scratch/AG_Ohler/Scott/sciAtacFishUrchinFly/Undetermined_S0_R1_001.fastq.gz	/scratch/AG_Ohler/Scott/sciAtacFishUrchinFly/Undetermined_S0_R2_001.fastq.gz	p5;p7;i5;i7

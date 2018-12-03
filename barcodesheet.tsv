@@ -1,5 +1,5 @@
 Name	read	reference
-I1	/scratch/AG_Ohler/Scott/sciATACtest/noSampleSheet/Undetermined_S0_I1_001.fastq.gz	/data/akalin/wkopp/scott_sciatac_refbarcodes/I1.tab
-I2	/scratch/AG_Ohler/Scott/sciATACtest/noSampleSheet/Undetermined_S0_I2_001.fastq.gz	/data/akalin/wkopp/scott_sciatac_refbarcodes/I2.tab
-I3	/scratch/AG_Ohler/Scott/sciATACtest/noSampleSheet/Undetermined_S0_I3_001.fastq.gz	/data/akalin/wkopp/scott_sciatac_refbarcodes/I3.tab
-I4	/scratch/AG_Ohler/Scott/sciATACtest/noSampleSheet/Undetermined_S0_I4_001.fastq.gz	/data/akalin/wkopp/scott_sciatac_refbarcodes/I4.tab
+i7	/scratch/AG_Ohler/Scott/sciAtacFishUrchinFly/Undetermined_S0_I1_001.fastq.gz	/data/akalin/wkopp/alison_sciatac_2018/refbarcodes/i7.tab
+p7	/scratch/AG_Ohler/Scott/sciAtacFishUrchinFly/Undetermined_S0_I2_001.fastq.gz	/data/akalin/wkopp/alison_sciatac_2018/refbarcodes/p7.tab
+i5	/scratch/AG_Ohler/Scott/sciAtacFishUrchinFly/Undetermined_S0_I3_001.fastq.gz	/data/akalin/wkopp/alison_sciatac_2018/refbarcodes/i5.tab
+p5	/scratch/AG_Ohler/Scott/sciAtacFishUrchinFly/Undetermined_S0_I4_001.fastq.gz	/data/akalin/wkopp/alison_sciatac_2018/refbarcodes/p5.tab
