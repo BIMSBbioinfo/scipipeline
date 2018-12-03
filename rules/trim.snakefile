@@ -1,6 +1,9 @@
+import os
 from os.path import splitext
 
-if config['trim_reads'] == 'flexbar':
+print(config)
+if 'adapters' in config and os.path.exists(config['adapters']):
+
     rule adapter_trimming_flexbar:
         """Trim adapters using flexbar"""
         input:
@@ -21,8 +24,7 @@ if config['trim_reads'] == 'flexbar':
             if params.paired:
                 cmd += " -p {input.reads[1]} "
             cmd += " -t {params.target}"
-            if 'adapters' in config:
-                cmd += ' -a {}'.format(config['adapters'])
+            cmd += ' -a {}'.format(config['adapters'])
             cmd += " -f i1.8 -u 10 -ae RIGHT -at 1.0 --threads {threads} "
             cmd += " --zip-output GZ "
             cmd += " --min-read-length 50  > {log} && "
@@ -34,7 +36,7 @@ if config['trim_reads'] == 'flexbar':
                 cmd += " ln -s {params.target}.fastq.gz {params.target}_2.fastq.gz; "
             shell(cmd)
     
-elif config['trim_reads'] == 'trim_galore':
+else:
     rule adapter_trimming_trimgalore:
         """Trim adapters using flexbar"""
         input:
