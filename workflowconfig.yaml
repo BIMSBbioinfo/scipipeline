@@ -7,11 +7,10 @@ barcodes:
     min_mapq: 5
     max_mismatch: 2
 
-# Specify whether the reads should be trimmmed
-# if the adapters are known, put them in a fasta file.
+# If the adapters are known, put them in a fasta file under the adapters field.
 # flexbar will make use of them.
-# On the other hand, if the adapters are not know, comment out the adapters field.
-# in this case, trim_galore will try to infer the adapter sequences.
+# On the other hand, if the adapters are not know, remove the adapters field.
+# In this case, trim_galore will try to infer the adapter sequences.
 adapters: /data/ohler/Scott/Asli_Scripts/sciAtacAdapters.fa
 
 # reference genomes to map against

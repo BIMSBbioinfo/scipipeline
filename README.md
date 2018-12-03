@@ -107,12 +107,11 @@ barcodes:
     max_mismatch: 2
 
 
-# Specify whether the reads should be trimmmed with
-# flexbar or with trim_galore
-trim_reads: trim_galore/flexbar
-
-# This options can be removed if no adapters are available
-adapters: /path/to/adapters.fasta
+# If the adapters are known, put them in a fasta file under the adapters field.
+# flexbar will make use of them.
+# On the other hand, if the adapters are not know, remove the adapters field.
+# In this case, trim_galore will try to infer the adapter sequences.
+adapters: /data/ohler/Scott/Asli_Scripts/sciAtacAdapters.fa
 
 # reference genomes to map against
 # with the paths pointing to respective bowtie2 indices
@@ -244,9 +243,3 @@ The results are organized in the specified output directory as follows:
 |    |    |-- report: summary figures and tables
 ```
 
-## Hints
-
-### Whether to use flexbar or trim_galore
- We suggest to use flexbar with a set of known adapter sequences.
- If the adapters are not known, we suggest to use trim_galore. The latter tool
- is able to infer commonly used sequencing adapters.
