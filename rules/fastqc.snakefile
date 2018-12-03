@@ -4,7 +4,7 @@ rule quality_control_trimmed:
     input: get_mapping_inputs
     output: directory(join(OUT_DIR, '{sample}', 'fastqc_trimmed'))
     resources:
-      mem_mb=3000
+      mem_mb=10000
     threads: 1
     shell:
       "mkdir -p {output}; fastqc {input} -o {output}"
@@ -16,7 +16,7 @@ rule quality_control_raw:
     input: get_trim_inputs
     output: directory(join(OUT_DIR, '{sample}', 'fastqc_raw'))
     resources:
-      mem_mb=3000
+      mem_mb=10000
     threads: 1
     shell:
       "mkdir -p {output}; fastqc {input} -o {output}"
