@@ -11,6 +11,7 @@
                    "python-py2bit"
                    "python-pandas"
                    "python-matplotlib"
+                   "python-scipy"
                    "python-seaborn"
                    "python-h5py"
                    "htseq"
