@@ -27,7 +27,7 @@ reference:
     macs_gsize: dm
     removechroms: [chrM, _random, chrUn]
   urchin:
-    bowtie2index: /data/akalin/wkopp/bowtie2_indices/Spurp3/Spurp3
+    bowtie2index: /data/akalin/wkopp/bowtie2_indices/Spurp3/Spurp3.1
     macs_gsize: dm
     removechroms: [chrM, _random, chrUn]
 
