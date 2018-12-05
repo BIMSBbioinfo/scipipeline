@@ -57,7 +57,7 @@ def augment_alignment_by_barcode_from_name(inbam, outbam, reftable):
 
     # update the header with the available barcodes
     f = AlignmentFile(outbam + '.tmp', 'rb')
-    header = f.header
+    header = f.header.to_dict().copy()
     header['RG'] = [{'ID': bc, 'SM':bc} for bc in barcodes]
     bam_writer = AlignmentFile(outbam, 'wb', header=header)
     for aln in f.fetch(until_eof=True):
@@ -157,7 +157,7 @@ def split_reads_by_barcode(barcode_bams, treatment_bam,
         reader.close()
 
     f = AlignmentFile(output_bam + '.tmp', 'rb')
-    header = f.header
+    header = f.header.to_dict().copy()
     header['RG'] = [{'ID': combid, 'SM': combid} for combid in barcodes]
     bam_writer = AlignmentFile(output_bam, 'wb', header=header)
     for aln in f.fetch(until_eof=True):
