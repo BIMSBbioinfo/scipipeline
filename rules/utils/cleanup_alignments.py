@@ -52,10 +52,9 @@ def remove_chroms(inbam, outbam, chroms):
             new_chroms.append(seq)
             chrnames.append(seq['SN'])
 
-    header['SQ'] = new_chroms
+    new_header = {'SQ': new_chroms}
 
-    bam_writer = AlignmentFile(outbam, 'wb', header=header)
-#    bam_writer = AlignmentFile(outbam, 'wb', template=treatment)
+    bam_writer = AlignmentFile(outbam, 'wb', header=new_header)
 
     # write new bam files containing only valid chromosomes
     for aln in treatment.fetch(until_eof=True):
