@@ -28,7 +28,7 @@ rule plot_barcode_freqs:
     run:
         plot_barcode_frequencies(input[0], output[0])
 
-INPUT_ALL.append(expand(rules.plot_barcode_freqs.output, reference=config['reference'], sample=samples.Name.tolist(), 
+INPUT_ALL.append(expand(rules.plot_barcode_freqs.output, reference=config['reference'], sample=samples.Name.tolist(),
                         minmapq=config['min_mapq'],
                         mincounts=config['min_counts_per_barcode']))
 
@@ -46,9 +46,9 @@ rule plot_barcode_freqs_by_percent_in_peaks:
         # however, it is sufficient to just use one of them.
         plot_barcode_frequency_by_peak_percentage(input.x[0], input.y, output[0])
 
-INPUT_ALL.append(expand(rules.plot_barcode_freqs_by_percent_in_peaks.output, 
-                        reference=config['reference'], 
-                        sample=samples.Name.tolist(), 
+INPUT_ALL.append(expand(rules.plot_barcode_freqs_by_percent_in_peaks.output,
+                        reference=config['reference'],
+                        sample=samples.Name.tolist(),
                         minmapq=config['min_mapq'],
                         mincounts=config['min_counts_per_barcode'],
                         binsize=config['binsize'],
@@ -65,11 +65,45 @@ rule plot_fragment_size_dist:
     run:
         plot_fragment_size(input[0], output[0])
 
-INPUT_ALL.append(expand(rules.plot_fragment_size_dist.output, 
-                        reference=config['reference'], 
+INPUT_ALL.append(expand(rules.plot_fragment_size_dist.output,
+                        reference=config['reference'],
                         sample=samples.Name.tolist(),
                         minmapq=config['min_mapq'],
                         mincounts=config['min_counts_per_barcode']))
+
+
+# ------------------------ #
+#
+if len(config['reference']) > 1:
+    # if more than one species is available, a figure is created
+    # to check for barcode collisions.
+    rule plot_barcode_collision_across_species:
+        """Plot fragment size distribution"""
+        input:
+            tables = expand(join(OUT_DIR, "{{sample}}", \
+                        "{reference}", "report", \
+                        "barcode_frequencies.minmapq{{minmapq}}.mincount{{mincounts}}.tab"), \
+                        reference=config['reference'])
+        params:
+            names = config['reference']
+        output: report(join(OUT_DIR, "{sample}", "report", \
+                       "barcode_collision_logplot_minmapq{minmapq}_mincount{mincounts}.svg"), \
+                       category="Barcode collision"),
+                report(join(OUT_DIR, "{sample}", "report", \
+                               "barcode_collision_plot_minmapq{minmapq}_mincount{mincounts}.svg"), \
+                               category="Barcode collision"),
+        resources:
+          mem_mb=1000
+        run:
+            barcode_collision_scatter_plot(input.tables, params.names, \
+                                                output[0], logplot=True)
+            barcode_collision_scatter_plot(input.tables, params.names, \
+                                                output[1], logplot=False)
+
+    INPUT_ALL.append(expand(rules.plot_barcode_collision_across_species.output,
+                            sample=samples.Name.tolist(),
+                            minmapq=config['min_mapq'],
+                            mincounts=config['min_counts_per_barcode']))
 
 
 # ------------------------ #
@@ -89,4 +123,3 @@ rule make_multiqc_report:
         "multiqc -f --outdir {params.searchdir} {params.searchdir}"
 
 INPUT_ALL.append(rules.make_multiqc_report.output)
-

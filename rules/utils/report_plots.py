@@ -3,11 +3,31 @@ import pysam
 import pandas as pd
 import matplotlib.pyplot as plt
 plt.switch_backend('agg')
+from scipy.misc import comb
 import seaborn as sns
 sns.set(style='white')
 
 def plot_barcode_frequencies(tab_file, plotname):
-    """ Plot barcode frequency distribution"""
+    """ Plot barcode frequency distribution.
+
+    This function takes a tsv-file as input.
+    The Tsv file consists of two columns, barcode names and read counts
+
+    barcodes    counts
+    bc1         502
+    bc2         1304
+    ...
+
+    The output will be a figure showing the distribution of
+    log10 transformed counts that is saved under plotname.
+
+    Parameters
+    ----------
+    tab_file : str
+        TSV table containing the barcodes with the associated counts.
+    plotname : str
+        Output filename of the figure.
+    """
     x=pd.read_csv(tab_file, sep='\t')
     f = plt.figure()
     ax = sns.distplot(x.counts.apply(np.log10))
@@ -19,15 +39,21 @@ def plot_barcode_frequencies(tab_file, plotname):
 
 
 def plot_fragment_size(bamin, plotname):
-    """Plot fragment size distribution"""
+    """Plot fragment size distribution.
+
+    This plot illustrates the fragment size distribution
+    across all cells. It should show a periodic pattern
+    corresponding to nucleosome free and nucleosome spanning
+    read pairs.
+    """
     handle = pysam.AlignmentFile(bamin, 'r')
     fragmentsize_dist = np.zeros((2000,))
-    
+
     for aln in handle:
        if not aln.is_unmapped and aln.is_read1:
            tl = min(abs(aln.tlen), 1999)
            fragmentsize_dist[tl] += 1
-    
+
     handle.close()
 
     # make a plot
@@ -39,9 +65,16 @@ def plot_fragment_size(bamin, plotname):
     f.savefig(plotname, dpi=f.dpi)
 
 
-def plot_barcode_frequency_by_peak_percentage(barcode_frequency, 
+def plot_barcode_frequency_by_peak_percentage(barcode_frequency,
                                               peak_frequency, plotname):
-    """2D plot of percentage of reads in peaks vs. reads per barcode"""
+    """2D plot of percentage of reads in peaks vs. reads per barcode.
+
+    This plot shows distribution of fragments per cell relative
+    to the percentage of reads falling into peaks.
+
+    Buenrostro et al. 2018 have used this information to filter out
+    low quality cells.
+    """
     y = pd.read_csv(peak_frequency, sep='\t')
     y = y.groupby('cell').sum()['count']
 
@@ -57,22 +90,49 @@ def plot_barcode_frequency_by_peak_percentage(barcode_frequency,
     ax = ax.savefig(plotname)
 
 
-def scatter_log_frequencies_per_species(tables, labels, plotname):
-    t1 = pd.read_csv(tables[0], sep='\t')
-    t2 = pd.read_csv(tables[1], sep='\t')
-    for df in [t1, t2]:
-        df['I1'] = df['file'].apply(lambda x: int(x.split('_')[0].split('-')[1]))
+def barcode_collision_scatter_plot(tables, labels, plotname, logplot=True):
+    """ Plots the barcode frequencies per species.
 
-    #joined = pd.concat([t1,t2], axis=1, join='inner', on='file')
-    joined = pd.merge(t1, t2, how='inner', on='file')
-    joined['color'] = joined.I1_x.apply(lambda x: 'red' if x<5 else 'blue')
-    joined = joined[['deduplicated_x', 'deduplicated_y', 'color']]
-    joined.columns = labels + ['color']
-    f, ax = plt.subplots()
-    ax = joined.plot.scatter(labels[0], labels[1], ax=ax, loglog=True, alpha=.2, color=joined.color)
-    ax.set_xlabel('Reads per {} barcode'.format(labels[0]))
-    ax.set_ylabel('Reads per {} barcode'.format(labels[1]))
-    #ax.set_xlabel(
+    This function gets a list of barcode frequency tables from different species
+    and plots the frequencies of one species against another one.
+    This figure will indicate issues barcode collisions.
+
+    Parameters
+    ----------
+    tables : list(str)
+        List of Tsv files containing the barcode counts. Each file corresponds
+        to a species with barcodes from the same barcode universe.
+    labels : list(str)
+        List of species labels.
+    plotname : str
+        Figure name. If more than 2 species are used, the figure will contain
+        subplots for each pair-wise comparison.
+    logplot : boolean
+        Whether to show log transformed counts in the scatter plot or raw counts.
+        Default: True.
+    """
+    nfigures = comb(len(tables), 2)
+
+    f, axes = plt.subplots(nfigures // 2, 2)
+
+    for xdim in range(len(tables) - 1):
+        for ydim in range(xdim + 1, len(tables)):
+
+            t1 = pd.read_csv(tables[xdim], sep='\t')
+            t2 = pd.read_csv(tables[ydim], sep='\t')
+
+            joined = pd.merge(t1, t2, how='inner', on='barcodes')
+
+            axes[xdim, ydim] = joined.plot.scatter(labels[xdim],
+                                                   labels[ydim],
+                                                   ax=axes[xdim, ydim],
+                                                   loglog=logplot,
+                                                   alpha=.2)
+            labtext = "{} for ".format("Log10(#Fragments)" if logplot else "#Fragments")
+
+            axes[xdim, ydim].set_xlabel(labtext + labels[xdim])
+            axes[xdim, ydim].set_ylabel(labtext + labels[ydim])
+
     f.savefig(plotname, dpi=f.dpi)
 
 def scatter_frequencies_per_species_colored(tables, labels, plotname):
@@ -149,4 +209,3 @@ def species_specificity(aln_file1, aln_file2, output, labels):
         plt.xlabel(labels[1])
         f.savefig(output + '.png', dpi=f.dpi)
         np.savetxt(output + '.tab', cnt, delimiter='\t')
-
