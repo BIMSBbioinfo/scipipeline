@@ -9,7 +9,7 @@ def make_genome_size(inbam, output):
     """
 
     treatment = AlignmentFile(inbam, 'rb')
-    
+
     with open(output, "w") as out:
         for seq in treatment.header['SQ']:
             out.write("{}\t{}\n".format(seq['SN'], seq['LN']))
@@ -65,7 +65,7 @@ def remove_chroms(inbam, outbam, chroms):
             if aln.is_paired and aln.is_proper_pair:
                 aln.next_reference_id = tid_map[aln.next_reference_id]
             bam_writer.write(aln)
-        
+
     bam_writer.close()
     treatment.close()
 
@@ -104,22 +104,22 @@ def remove_low_mapq_reads(inbam, outbam, minmapq):
                     # write them into the output file
                     bam_writer.write(waiting_for_pair[aln.rname])
                     bam_writer.write(aln)
-                
+
                 # finally clear the waiting list to save memory
                 waiting_for_pair.pop(aln.rname)
-                    
+
         else:
             # single end
             if aln.maqp >= minmapq:
                 bam_writer.write(aln)
-    
+
     treatment.close()
     bam_writer.close()
 
 
 def remove_low_cellcount_reads(inbam, outbam, mincount):
     """
-    This function takes a bam file with barcodes in the 
+    This function takes a bam file with barcodes in the
     RG tag as input and outputs a bam file containing
     only barcodes that exceed the minimum number of aligments
     for a given barcode.
@@ -141,14 +141,14 @@ def remove_low_cellcount_reads(inbam, outbam, mincount):
 
     # make new header with the valid barcodes
     treatment = AlignmentFile(inbam, 'rb')
-    header = treatment.header
+    header = treatment.header.to_dict().copy()
     rgheader = []
     for rg in header['RG']:
        if barcodecounts[rg['ID']] >= mincount:
            rgheader.append(rg)
 
     header['RG'] = rgheader
-    
+
     bam_writer = AlignmentFile(outbam, 'wb', header=header)
     for aln in treatment.fetch(until_eof=True):
         if barcodecounts[aln.get_tag('RG')] >= mincount:

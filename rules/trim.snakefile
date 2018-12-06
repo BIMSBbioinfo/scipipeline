@@ -1,7 +1,6 @@
 import os
 from os.path import splitext
 
-print(config)
 if 'adapters' in config and os.path.exists(config['adapters']):
 
     rule adapter_trimming_flexbar:
