@@ -12,7 +12,7 @@ rule peak_calling_on_aggregate:
             foption = lambda wc: 'BAMPE' if is_paired(wc) else 'BAM',
             gsize = lambda wc: config['reference'][wc.reference]['macs_gsize']
     resources:
-      mem_mb=3000
+      mem_mb=30000
     log: join(LOG_DIR, 'macs2_{sample}_{reference}_minmapq{minmapq}_mincount{mincounts}.log')
     shell:
       " macs2 callpeak --name {params.name} -t {input} -f " +
