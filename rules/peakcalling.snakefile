@@ -8,7 +8,7 @@ rule peak_calling_on_aggregate:
     output: join(OUT_DIR, "{sample}", "{reference}", "peaks", "sample.minmapq{minmapq}.mincount{mincounts}_peaks.narrowPeak"), \
             join(OUT_DIR, "{sample}", "{reference}", "peaks", "sample.minmapq{minmapq}.mincount{mincounts}_summits.bed")
     params: name='sample.minmapq{minmapq}.mincount{mincounts}',
-            outdir = join(OUT_DIR, "{reference}", "peaks"),
+            outdir = join(OUT_DIR, "{sample}", "{reference}", "peaks"),
             foption = lambda wc: 'BAMPE' if is_paired(wc) else 'BAM',
             gsize = lambda wc: config['reference'][wc.reference]['macs_gsize']
     resources:

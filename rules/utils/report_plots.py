@@ -111,9 +111,13 @@ def barcode_collision_scatter_plot(tables, labels, plotname, logplot=True):
         Whether to show log transformed counts in the scatter plot or raw counts.
         Default: True.
     """
-    nfigures = comb(len(tables), 2)
+    nfigures = int(comb(len(tables), 2))
 
-    f, axes = plt.subplots(nfigures // 2, 2)
+    f, axes = plt.subplots(int(np.ceil(nfigures / 2)), 2)
+
+    #print(len(axes), len(axes[0]))
+    print(labels, len(labels))
+    print(tables, len(tables))
 
     for xdim in range(len(tables) - 1):
         for ydim in range(xdim + 1, len(tables)):
@@ -122,18 +126,20 @@ def barcode_collision_scatter_plot(tables, labels, plotname, logplot=True):
             t2 = pd.read_csv(tables[ydim], sep='\t')
 
             joined = pd.merge(t1, t2, how='inner', on='barcodes')
+            print(joined.head())
 
-            axes[xdim, ydim] = joined.plot.scatter(labels[xdim],
-                                                   labels[ydim],
-                                                   ax=axes[xdim, ydim],
+            axes[xdim, ydim - xdim - 1] = joined.plot.scatter('counts_x',
+                                                   'counts_y',
+                                                   ax=axes[xdim, ydim - xdim - 1],
                                                    loglog=logplot,
                                                    alpha=.2)
             labtext = "{} for ".format("Log10(#Fragments)" if logplot else "#Fragments")
 
-            axes[xdim, ydim].set_xlabel(labtext + labels[xdim])
-            axes[xdim, ydim].set_ylabel(labtext + labels[ydim])
+            axes[xdim, ydim - xdim - 1].set_xlabel(labtext + labels[xdim])
+            axes[xdim, ydim - xdim - 1].set_ylabel(labtext + labels[ydim])
 
     f.savefig(plotname, dpi=f.dpi)
+
 
 def scatter_frequencies_per_species_colored(tables, labels, plotname):
     t1 = pd.read_csv(tables[0], sep='\t')
