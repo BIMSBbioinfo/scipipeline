@@ -3,6 +3,7 @@ from os.path import join
 from utils.report_plots import plot_barcode_frequencies
 from utils.report_plots import plot_barcode_frequency_by_peak_percentage
 from utils.report_plots import plot_fragment_size
+from utils.report_plots import barcode_collision_scatter_plot
 from utils.count_matrix import get_barcode_frequency_genomewide
 
 
@@ -85,7 +86,7 @@ if len(config['reference']) > 1:
                         "barcode_frequencies.minmapq{{minmapq}}.mincount{{mincounts}}.tab"), \
                         reference=config['reference'])
         params:
-            names = config['reference']
+            names = [name for name in config['reference']]
         output: report(join(OUT_DIR, "{sample}", "report", \
                        "barcode_collision_logplot_minmapq{minmapq}_mincount{mincounts}.svg"), \
                        category="Barcode collision"),
