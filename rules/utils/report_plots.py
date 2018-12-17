@@ -225,7 +225,7 @@ def cross_species_mapping_reads(bamfiles, plotname, labels):
         List of labels included in the figure
     """
 
-    readers = [AlignmentFile(file_, 'r').fetch(until_eof=True) for file_ in bamfiles]
+    readers = [pysam.AlignmentFile(file_, 'r').fetch(until_eof=True) for file_ in bamfiles]
 
     cnt = np.zeros((len(readers), len(readers)))
     try:
