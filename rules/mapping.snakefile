@@ -36,12 +36,13 @@ INPUT_ALL.append(expand(rules.read_mapping.output, sample=samples.Name.tolist(),
 
 rule remove_chromosomes:
     input: join(OUT_DIR, '{sample}', '{reference}', 'mapping', 'sample.bam')
-    output: join(OUT_DIR, '{sample}', '{reference}', 'mapping', 'sample.cleanchrom.bam')
+    output: join(OUT_DIR, '{sample}', '{reference}', 'mapping', 'sample.cleanchrom.bam'), \
+            join(OUT_DIR, '{sample}', '{reference}', 'report', 'summary_removed_chroms.tsv')
     params: chroms = lambda wc: config['reference'][wc.reference]['removechroms']
     resources:
         mem_mb=1000
     run:
-        remove_chroms(input[0], output[0], params.chroms)
+        remove_chroms(input[0], output[0], params.chroms, output[1])
 
 INPUT_ALL.append(expand(rules.remove_chromosomes.output, sample=samples.Name.tolist(), reference=config['reference']))
 
@@ -55,4 +56,3 @@ rule make_genome_size_table:
         make_genome_size(input[0], output[0])
 
 INPUT_ALL.append(expand(rules.make_genome_size_table.output, reference=config['reference'], sample=samples.Name.tolist()))
-

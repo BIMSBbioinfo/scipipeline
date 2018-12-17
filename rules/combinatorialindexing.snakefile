@@ -93,7 +93,8 @@ rule split_reads_by_index:
                                 'barcode.{barcode}.namesorted.bam'),
                                 barcode=samples[samples.Name==wc.sample].barcodes.tolist()[0].split(';')),
        read_aln=join(OUT_DIR, '{sample}', '{reference}', 'mapping', 'sample.namesorted.bam')
-    output: join(OUT_DIR, '{sample}', "{reference}", 'mapping', "sample.barcoded.bam")
+    output: join(OUT_DIR, '{sample}', "{reference}", 'mapping', "sample.barcoded.bam"),
+            join(LOG_DIR, '{sample}', '{reference}', 'report', 'summary_barcoded_alignments.tsv')
     resources:
         mem_mb=1000
     params:
@@ -103,4 +104,20 @@ rule split_reads_by_index:
        split_reads_by_barcode(input.barcode_alns,
                               input.read_aln,
                               output[0],
-                              params.min_mapq, params.max_mismatches)
+                              params.min_mapq, params.max_mismatches, output[1])
+
+
+rule plot_demultiplex_summary:
+    input: join(LOG_DIR, '{sample}', '{reference}', \
+                'report', 'demulitplexed_alignments.tsv')
+    output: report(join(LOG_DIR, '{sample}', '{reference}', \
+                        'report', 'summary_barcoded_alignments.png'), \
+                   category='Alignment filtering')
+    resources:
+      mem_mb=1000
+    run:
+        plot_barplot_summary_statistics(input[0], output[0], 'Results: Demultiplexing')
+
+INPUT_ALL.append(expand(rules.plot_demultiplex_summary.output,
+                        reference=config['reference'],
+                        sample=samples.Name.tolist()))
