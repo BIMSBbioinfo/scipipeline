@@ -1,7 +1,7 @@
 import os
 from os.path import splitext
 
-if 'adapters' in config and os.path.exists(config['adapters']):
+if 'adapters' in config:
 
     rule adapter_trimming_flexbar:
         """Trim adapters using flexbar"""
@@ -34,7 +34,7 @@ if 'adapters' in config and os.path.exists(config['adapters']):
                 cmd += " ln -s {params.target}.fastq.gz {params.target}_1.fastq.gz; "
                 cmd += " ln -s {params.target}.fastq.gz {params.target}_2.fastq.gz; "
             shell(cmd)
-    
+
 else:
     rule adapter_trimming_trimgalore:
         """Trim adapters using flexbar"""
@@ -58,10 +58,10 @@ else:
                 cmd += " --paired {input.reads[0]} {input.reads[1]} "
             else:
                 cmd += " {input.reads[0]} "
-    
+
             cmd += " -o {params.target} --gzip"
             cmd += " >> {log} 2>&1 && "
-    
+
             # rename the trim galore output.
             if params.paired:
                 cmd += " ln -s {params.target}/{params.reads[0]} {params.target}/sample_1.fastq.gz; "
@@ -70,7 +70,7 @@ else:
                 cmd += " ln -s {params.target}/{params.reads[0]} {params.target}/sample.fastq.gz; "
 
             # create fake output files
-            # this allows us to use a single rule for 
+            # this allows us to use a single rule for
             # single or paired end.
             if params.paired:
                 cmd += " ln -s {params.target}_1.fastq.gz {params.target}.fastq.gz; "
