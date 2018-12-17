@@ -212,13 +212,13 @@ def get_barcode_frequency_genomewide(bamfile, storage):
     if use_group:
         # extract barcodes
         for idx, item in enumerate(afile.header['RG']):
-            barcodes[item['ID']] = idx
+            barcodes[item['ID']] = 0
     else:
         barcodes['dummy'] = 0
     print('found {} barcodes'.format(len(barcodes)))
 
     for aln in afile.fetch(until_eof=True):
-        if aln.is_proper_pair and aln.pos < aln.next_reference_start:
+        if aln.is_proper_pair and aln.is_read1:
             barcodes[aln.get_tag('RG') if use_group else 'dummy'] += 1
 
         if not aln.is_paired:
