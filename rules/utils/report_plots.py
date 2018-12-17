@@ -7,6 +7,15 @@ from scipy.misc import comb
 import seaborn as sns
 sns.set(style='white')
 
+def plot_barplot_summary_statistics(tab_file, plotname, title):
+    """Plot summary statistics of filtering step."""
+    df=pd.read_table(tab_file)
+    f, ax = plt.subplots()
+    ax = df.plot.barh(x='Readgroup', y='counts', ax=ax)
+    ax.set_title(title)
+    f.savefig(plotname, dpi=f.dpi)
+
+
 def plot_barcode_frequencies(tab_file, plotname):
     """ Plot barcode frequency distribution.
 
@@ -30,7 +39,7 @@ def plot_barcode_frequencies(tab_file, plotname):
     """
     x=pd.read_csv(tab_file, sep='\t')
     f = plt.figure()
-    ax = sns.distplot(x.counts.apply(np.log10))
+    ax = sns.distplot(x.counts.apply(lambda x: np.log10(x + 1.)))
     ax.set_xlabel('Log10(# Fragments)')
     ax.set_ylabel('Frequency')
     ax.set_title('Barcode frequency')
@@ -194,24 +203,49 @@ def density_frequencies_per_species_colored(tables, labels, plotname):
     f.savefig(plotname, dpi=f.dpi)
 
 
-def species_specificity(aln_file1, aln_file2, output, labels):
-    aln1 = AlignmentFile(aln_file1, 'r').fetch(until_eof=True)
-    aln2 = AlignmentFile(aln_file2, 'r').fetch(until_eof=True)
+def cross_species_mapping_reads(bamfiles, plotname, labels):
+    """This function determines the cross-mapping reads.
 
-    cnt = np.zeros((2,2))
+    In order to determine the success of a combinatorial indexing
+    experiment, usually one mixes reads obtained from two different
+    species. This allows to investigate and detect issues with
+    barcode collisions.
+    However, barcode may also occur in two species if they in fact
+    map to both species simultaneously through cross mapability.
+    This function produces a heatmap that visualizes how many reads
+    map to one or more than one species.
+
+    Parameters
+    ----------
+    bamfiles : list(str)
+        List of bam files
+    plotname : str
+        Output location of figure.
+    labels : list(str)
+        List of labels included in the figure
+    """
+
+    readers = [AlignmentFile(file_, 'r').fetch(until_eof=True) for file_ in bamfiles]
+
+    cnt = np.zeros((len(readers), len(readers)))
     try:
         while 1:
-            m1 = not next(aln1).is_unmapped
-            m2 = not next(aln2).is_unmapped
-            cnt[0 if m1 else 1, 0 if m2 else 1] += 1
+            vals = [not next(aln).is_unmapped for aln in readers]
+            for i, vali in enumerate(vals[:-1]):
+                if vali == 0:
+                    continue
+                for j, valj in enumerate(vals[1:]):
+                    if valj == 0:
+                        continue
+                    # if vali and valj are both 1, set the value in the
+                    # confusion matrix
+                    cnt[i, j] += 1
     except StopIteration:
         pass
     finally:
-        print(cnt)
         f = plt.figure()
-        sns.heatmap(cnt/cnt.sum(), annot=True, cmap='YlGnBu',
-                    xticklabels=['mapped', 'unmapped'], yticklabels=['mapped', 'unmapped'])
-        plt.ylabel(labels[0])
-        plt.xlabel(labels[1])
-        f.savefig(output + '.png', dpi=f.dpi)
-        np.savetxt(output + '.tab', cnt, delimiter='\t')
+        sns.heatmap((cnt/cnt.sum(axis=0)).T, annot=True, cmap='YlGnBu',
+                    xticklabels=labels, yticklabels=labels)
+        plt.ylabel("")
+        plt.xlabel("(Row-normal.) Cross mappability")
+        f.savefig(plotname, dpi=f.dpi)

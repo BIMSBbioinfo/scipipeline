@@ -69,7 +69,7 @@ def augment_alignment_by_barcode_from_name(inbam, outbam, reftable):
 
 
 def split_reads_by_barcode(barcode_bams, treatment_bam,
-                           output_bam, min_mapq=None, max_mismatches=1):
+                           output_bam, min_mapq=None, max_mismatches=1, log=None):
     """Splits the reads by barcodes.
 
     This function takes a set of barcode alignments (in bam format)
@@ -114,13 +114,16 @@ def split_reads_by_barcode(barcode_bams, treatment_bam,
     bam_writer = AlignmentFile(output_bam + '.tmp', 'wb', template=treatment_reader)
 
     barcodes = set()
+    log_content = {}
+    log_content['with_barcode'] = 0
+    log_content['no_barcode'] = 0
+    log_content['unmapped'] = 0
 
     for aln in treatment_reader.fetch(until_eof=True):
         # only retain the aligned reads
         if aln.is_unmapped:
-            unaligned_cnt += 1
+            log_content['unmapped'] += 1
             continue
-        aligned_cnt += 1
 
         # extract the corresponding barcodes
         for i, br_it in enumerate(barcode_it):
@@ -133,14 +136,17 @@ def split_reads_by_barcode(barcode_bams, treatment_bam,
             # one or more barcodes are abscent
             # Barcode must map to the forward strand only
             # Reverse strand matches are definitely due to sequencing errors
+            log_content['no_barcode'] += 1
             continue
 
         if any([x.mapq < min_mapq for x in bnames]):
             # remove poor mapping quality
+            log_content['no_barcode'] += 1
             continue
 
         if any([x.get_tag('XM') > max_mismatches for x in bnames]):
             # maximum number of mismatches exceeded
+            log_content['no_barcode'] += 1
             continue
 
         comb_id = '_'.join([baln.reference_name for baln in bnames])
@@ -148,6 +154,7 @@ def split_reads_by_barcode(barcode_bams, treatment_bam,
 
         aln.set_tag('RG', comb_id)
         bam_writer.write(aln)
+        log_content['with_barcode'] += 1
 
     print("End batch ...")
 
@@ -166,6 +173,12 @@ def split_reads_by_barcode(barcode_bams, treatment_bam,
     f.close()
     os.remove(output_bam + '.tmp')
     bam_writer.close()
+
+    #write log file
+    with open(log, 'w') as f:
+        f.write('Readgroup\tcounts\n')
+        for icnt in log_content:
+            f.write('{}\t{}\n'.format(icnt, log_content[icnt]))
 
 
 def deduplicate_reads(bamin, bamout, by_rg=True):
