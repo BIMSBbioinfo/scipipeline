@@ -129,14 +129,14 @@ def sparse_count_reads_in_regions(bamfile, regions, storage, flank=0,
 
     tlen = template_length
     for idx, region in enumerate(regfile):
-            
+
         iv = region.iv.copy()
-        iv.start -= flank 
+        iv.start -= flank
         iv.end += flank
 
         fetchstart = max(iv.start - tlen, 0)
         fetchend =  iv.end
-#min(iv.end + tlen, genomesize[iv.chrom])
+
         for aln in afile.fetch(iv.chrom, fetchstart, fetchend):
             if aln.is_proper_pair and aln.pos < aln.next_reference_start:
 
@@ -233,17 +233,6 @@ def get_barcode_frequency_genomewide(bamfile, storage):
 
     df.to_csv(storage, sep='\t', header=True, index=False)
 
-
-def per_barcode_count_summary(cnt_mat, peak_counts, storage):
-    df_cnt = pd.read_csv(cnt_mat, header=[0], sep='\t')
-    df_peak = pd.read_csv(peak_counts, header=[0], sep='\t')
-
-    per_bc_count = df_cnt.groupby('cell').agg('sum')['count']
-    per_bc_count_in_peaks = df_peak.groupby('cell').agg('sum')['count']
-    per_bc_count['count_in_peaks'] = per_bc_count_in_peaks['count']
-    per_bc_count['percent_in_peaks'] = per_bc_count.apply(lambda row: row['count_in_peaks']/row['count'])
-
-    per_bc_count.to_csv(storage, sep='\t')
 
 if __name__ == '__main__':
   regions = '../../scipipe_output/hg19/countmatrix/atac_bin_1000.bed'

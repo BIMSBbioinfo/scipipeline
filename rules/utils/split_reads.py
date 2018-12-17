@@ -18,7 +18,7 @@ def augment_alignment_by_barcode_from_name(inbam, outbam, reftable):
     The barcode name from the read is then used to look up
     the corresponding barcode name from a reference table
     that has the form
-    
+
     > cat barcodesheet.tsv
     readpre1    cell1
     readpre2    cell2
@@ -32,7 +32,7 @@ def augment_alignment_by_barcode_from_name(inbam, outbam, reftable):
 
     # load mapping between read name prefix and barcode
     refs = pd.read_csv(reftable, sep='\t', header=[0])
-    # obtain the prefix length and check if it is the same 
+    # obtain the prefix length and check if it is the same
     # for all entries
     reflen = len(refs['Readprefix'][0])
     rmap = {}
@@ -179,51 +179,6 @@ def split_reads_by_barcode(barcode_bams, treatment_bam,
         f.write('Readgroup\tcounts\n')
         for icnt in log_content:
             f.write('{}\t{}\n'.format(icnt, log_content[icnt]))
-
-
-def deduplicate_reads(bamin, bamout, by_rg=True):
-    """This script deduplicates the original bamfile.
-
-    Deduplication removes reads align to the same position.
-    If the reads in the bamfile contain a RG tag and
-    by_rg=True, deduplication is done for each group separately.
-
-    Parameters
-    ----------
-    bamfile : str
-        Sorted bamfile containing barcoded reads.
-    output : str
-        Output path to a bamfile that contains the deduplicated reads.
-    by_rg : boolean
-        If True, the reads will be split by group tag.
-    """
-    bamfile = AlignmentFile(bamin, 'rb')
-    output = AlignmentFile(bamout, 'wb', template=bamfile)
-
-    # grep all barcodes from the header
-    #barcodes = set()
-    last_barcode = {}
-
-    for aln in bamfile.fetch():
-        # if previous hash matches the current has
-        # skip the read
-        val = (aln.reference_id, aln.reference_start,
-               aln.is_reverse, aln.tlen)
-        if aln.has_tag('RG') and by_rg:
-            rg = aln.get_tag('RG')
-        else:
-            rg = 'dummy'
-
-        if rg not in last_barcode:
-            output.write(aln)
-            # clear dictionary
-            last_barcode[rg] = val
-                
-        if val == last_barcode[rg]:
-            continue
-        else:
-            output.write(aln)
-            last_barcode[rg] = val
 
 if __name__ == '__main__':
     barcode_bams = ['pseudo_genome_I{}_sorted.bam'.format(i) for i in [1,2,3,4]]
