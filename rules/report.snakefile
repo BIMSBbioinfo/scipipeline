@@ -148,7 +148,8 @@ if len(config['reference']) > 1:
                                         params.labels)
 
     INPUT_ALL.append(expand(rules.plot_cross_mappability.output,
-                            sample=samples.Name.tolist())
+                            sample=samples.Name.tolist()))
+
 # ------------------------ #
 #
 rule make_multiqc_report:
