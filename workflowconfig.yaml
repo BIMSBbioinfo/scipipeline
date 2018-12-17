@@ -11,7 +11,7 @@ barcodes:
 # flexbar will make use of them.
 # On the other hand, if the adapters are not know, remove the adapters field.
 # In this case, trim_galore will try to infer the adapter sequences.
-adapters: /data/ohler/Scott/Asli_Scripts/sciAtacAdapters.fa
+adapters: /data/ohler/Scott/sciATACtest/sciAtacAdapters.fa
 
 # reference genomes to map against
 # the paths should point to the respective bowtie2 indices
