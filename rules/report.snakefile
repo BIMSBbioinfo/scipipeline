@@ -110,18 +110,13 @@ if len(config['reference']) > 1:
         params:
             names = [name for name in config['reference']]
         output: report(join(OUT_DIR, "{sample}", "report", \
-                       "barcode_collision_logplot_minmapq{minmapq}_mincount{mincounts}.svg"), \
-                       category="Barcode collision"),
-                report(join(OUT_DIR, "{sample}", "report", \
-                               "barcode_collision_plot_minmapq{minmapq}_mincount{mincounts}.svg"), \
+                               "plot_barcode_collision_minmapq{minmapq}_mincount{mincounts}.svg"), \
                                category="Barcode collision"),
         resources:
             mem_mb=1000
         run:
             barcode_collision_scatter_plot(input.tables, params.names, \
-                                                output[0], logplot=True)
-            barcode_collision_scatter_plot(input.tables, params.names, \
-                                                output[1], logplot=False)
+                                                output[0], logplot=False)
 
     INPUT_ALL.append(expand(rules.plot_barcode_collision_across_species.output,
                             sample=samples.Name.tolist(),
@@ -138,7 +133,7 @@ if len(config['reference']) > 1:
             labels = [name for name in config['reference']]
         output:
             plotname = report(join(OUT_DIR, "{sample}", "report", \
-                           "cross_mappability.svg"), \
+                           "plot_cross_mappability.svg"), \
                            category="Barcode collision")
         resources:
           mem_mb=1000
