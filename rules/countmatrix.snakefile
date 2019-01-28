@@ -13,7 +13,7 @@ rule make_counting_bins:
     wildcard_constraints:
        minmapq='\d+', mincounts='\d+'
     resources:
-        mem_mb=1000
+        mem_mb=5000
     run:
         make_beds_for_intervalsize(input.bams, int(wildcards.binsize), output.bins)
 
@@ -46,11 +46,12 @@ rule counting_reads_in_bins:
         cellsum = join(OUT_DIR, '{sample}', '{reference}', 'countmatrix', 'genomebins_binsize{binsize}.minmapq{minmapq}.mincount{mincounts}.tab.counts')
     wildcard_constraints:
        minmapq='\d+', mincounts='\d+'
+    log: join(LOG_DIR, 'genomebins_countmatrix_{sample}_{reference}.binsize{binsize}.minmap{minmapq}.mincount{mincounts}.log')
     resources:
         mem_mb=10000
     run:
         try:
-            sparse_count_reads_in_regions(input.bams, input.bins, output.countmatrix, flank=0)
+            sparse_count_reads_in_regions(input.bams, input.bins, output.countmatrix, flank=0, log=log[0])
         except:
             exc_type, exc_value, exc_traceback = sys.exc_info()
             print("custom code exception:")
@@ -80,9 +81,10 @@ rule counting_reads_in_peaks:
        minmapq='\d+', mincounts='\d+', flank='\d+'
     resources:
         mem_mb=10000
+    log: join(LOG_DIR, 'peak_countmatrix_{sample}_{reference}.flank{flank}.minmap{minmapq}.mincount{mincounts}.log')
     run: 
         try:
-            sparse_count_reads_in_regions(input.bams, input.regions, output[0], flank=0)
+            sparse_count_reads_in_regions(input.bams, input.regions, output[0], flank=0, log=log[0])
         except:
             exc_type, exc_value, exc_traceback = sys.exc_info()
             print("custom code exception:")
@@ -97,3 +99,39 @@ INPUT_ALL.append(expand(rules.counting_reads_in_peaks.output,
                         flank=config['peak_flank'],
                         minmapq=config['min_mapq'],
                         mincounts=config['min_counts_per_barcode']))
+
+
+rule counting_reads_in_extra_annotation:
+    """Counting reads per barcode"""
+    input:
+        bams = join(OUT_DIR, '{sample}', "{reference}", 'mapping', "sample.barcoded.minmapq{minmapq}.dedup.mincount{mincounts}.bam"),
+        bai = join(OUT_DIR, '{sample}', "{reference}", 'mapping', "sample.barcoded.minmapq{minmapq}.dedup.mincount{mincounts}.bam.bai"),
+        bins = lambda wc: config['reference'][wc.reference]['annotation'][wc.annotation]
+    output:
+        countmatrix = join(OUT_DIR, '{sample}', '{reference}', 'countmatrix', 'extra_{annotation}.minmapq{minmapq}.mincount{mincounts}.tab'),
+        cellsum = join(OUT_DIR, '{sample}', '{reference}', 'countmatrix', 'extra_{annotation}.minmapq{minmapq}.mincount{mincounts}.tab.counts')
+    wildcard_constraints:
+       minmapq='\d+', mincounts='\d+'
+    log: join(LOG_DIR, 'extra_countmatrix_{annotation}_{sample}_{reference}.minmap{minmapq}.mincount{mincounts}.log')
+    resources:
+        mem_mb=10000
+    run:
+        try:
+            sparse_count_reads_in_regions(input.bams, input.bins, output.countmatrix, flank=0, log=log[0])
+        except:
+            exc_type, exc_value, exc_traceback = sys.exc_info()
+            print("custom code exception:")
+            traceback.print_exception(exc_type, exc_value, exc_traceback,
+                              limit=2, file=sys.stdout)
+
+for ref in config['reference']:
+  if 'annotation' in config['reference'][ref]:
+    print(ref)
+    print(config['reference'][ref]['annotation'])
+    INPUT_ALL.append(expand(rules.counting_reads_in_extra_annotation.output,
+                            reference=[ref],
+                            sample=samples.Name.tolist(),
+                            minmapq=config['min_mapq'],
+                            mincounts=config['min_counts_per_barcode'],
+                            annotation=config['reference'][ref]['annotation']))
+    

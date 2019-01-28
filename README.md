@@ -113,14 +113,17 @@ barcodes:
 # In this case, trim_galore will try to infer the adapter sequences.
 adapters: /data/ohler/Scott/Asli_Scripts/sciAtacAdapters.fa
 
+# The next block specifies the
 # reference genomes to map against
-# with the paths pointing to respective bowtie2 indices
+# with the paths pointing to respective bowtie2 indices.
 # The pipeline can be used to align the reads to multiple reference
 # genomes.
 # The macs_gsize option defines the effective genome size for peak calling
 # with macs2. removechroms allow to specify a list of chromosomes or
 # patterns of chromosome names which should be removed for the downstream
 # analysis.
+# Finally, under the annotation section, extra genomic regions can be specified
+# for which countmatrices should be generated.
 min_mapq: 0
 min_counts_per_barcode: 0
 reference:
@@ -132,6 +135,9 @@ reference:
     bowtie2index: /data/akalin/wkopp/bowtie2_indices/hg19/genome
     macs_gsize: hs
     removechroms: [chrM, _random, chrUn]
+    annotation:
+      markergenes: path/to/markergenes.bed
+      markerenhancers: path/to/markerenhancers.bed
 
 
 # binsizes to bin the reference genome
