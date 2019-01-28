@@ -64,7 +64,7 @@ def make_barcode_table(inbam, barcodetable):
     df.to_csv(barcodetable, sep='\t', header=True, index=True)
 
 
-def sparse_count_reads_in_regions(bamfile, regions, storage, flank=0,
+def sparse_count_reads_in_regions(bamfile, regions, storage, flank=0, log=None,
                                   template_length=1000):
     """ This function obtains the counts per bins of equal size
     across the genome.
@@ -98,23 +98,34 @@ def sparse_count_reads_in_regions(bamfile, regions, storage, flank=0,
     afile = AlignmentFile(bamfile, 'rb')
 
     # extract genome lengths
-    print('get genomesize')
+    if log is not None:
+        f = open(log, 'w')
+        fwrite = f.write
+    else:
+        fwrite = print
+    fwrite('Make countmatrix from region\n')
+    fwrite('bamfile: {}\n'.format(bamfile))
+    fwrite('bedfile: {}\n\n'.format(regions))
+    fwrite('get genomesize\n')
     # extract genome size
     genomesize = {}
     for chrom, length in zip(afile.references, afile.lengths):
         genomesize[chrom] = length
-    print('found {} chromosomes'.format(len(genomesize)))
+    fwrite('found {} chromosomes'.format(len(genomesize)))
 
     nreg = 0
     regfile = BED_Reader(regions)
     for _ in regfile:
         nreg += 1
 
+    fwrite('number of regions to collect counts from: {}'.format(nreg))
+
     if 'RG' in afile.header:
         use_group = True
     else:
         use_group = False
 
+    # get barcodes from header
     barcodes = {}
     if use_group:
         # extract barcodes
@@ -122,7 +133,10 @@ def sparse_count_reads_in_regions(bamfile, regions, storage, flank=0,
             barcodes[item['ID']] = idx
     else:
         barcodes['dummy'] = 0
-    print('found {} barcodes'.format(len(barcodes)))
+    fwrite('found {} barcodes'.format(len(barcodes)))
+
+    # barcode string for final table
+    barcode_string = ';'.join([item['ID'] for item in afile.header['RG']])
 
     sdokmat = dok_matrix((nreg, len(barcodes)), dtype='int32')
     nbarcode_inregions = {key: 0 for key in barcodes}
@@ -135,15 +149,15 @@ def sparse_count_reads_in_regions(bamfile, regions, storage, flank=0,
         iv.end += flank
 
         fetchstart = max(iv.start - tlen, 0)
-        fetchend =  iv.end
+        fetchend =  min(iv.end + tlen, genomesize[iv.chrom])
 
         for aln in afile.fetch(iv.chrom, fetchstart, fetchend):
-            if aln.is_proper_pair and aln.pos < aln.next_reference_start:
+            if aln.is_proper_pair and aln.is_read1:
 
-                if aln.template_length < 0:
-                    raise ValueError('template_length negative but next_reference_start greater')
+                pos = min(aln.reference_start, aln.next_reference_start)
+
                 # count paired end reads at midpoint
-                midpoint = aln.pos + aln.template_length//2
+                midpoint = pos + abs(aln.template_length)//2
                 if midpoint >= iv.start and midpoint < iv.end:
                    sdokmat[idx, barcodes[aln.get_tag('RG') if use_group else 'dummy']] += 1
                    nbarcode_inregions[aln.get_tag('RG') if use_group else 'dummy'] += 1
@@ -152,20 +166,20 @@ def sparse_count_reads_in_regions(bamfile, regions, storage, flank=0,
                 print('single-end')
                 # count single-end reads at 5p end
                 if not aln.is_reverse:
-                    if aln.pos >= iv.start and aln.pos < iv.end:
+                    if aln.reference_start >= iv.start and aln.reference_start < iv.end:
                         sdokmat[idx,
                         barcodes[aln.get_tag('RG') if use_group else 'dummy']] += 1
                 else:
-                    if aln.pos + aln.reference_length - 1 >= iv.start and \
-                       aln.pos + aln.reference_length - 1 < iv.end:
+                    if aln.reference_start + aln.reference_length - 1 >= iv.start and \
+                       aln.reference_start + aln.reference_length - 1 < iv.end:
                         sdokmat[idx,
                         barcodes[aln.get_tag('RG') if use_group else 'dummy']] += 1
                 nbarcode_inregions[aln.get_tag('RG') if use_group else 'dummy'] += 1
 
     afile.close()
 
-    print('sparse matrix shape: {}'.format(sdokmat.shape))
-    print('density: {}'.format(sdokmat.nnz/np.prod(sdokmat.shape)))
+    fwrite('sparse matrix shape: {}'.format(sdokmat.shape))
+    fwrite('density: {}'.format(sdokmat.nnz/np.prod(sdokmat.shape)))
 
     # store the results in COO sparse matrix format
     spcoo = sdokmat.tocoo()
@@ -177,8 +191,12 @@ def sparse_count_reads_in_regions(bamfile, regions, storage, flank=0,
     cont = {'region': indices[:,0], 'cell': indices[:, 1], 'count': values}
 
     df = pd.DataFrame(cont)
+    with open(storage, 'w') as title:
+        title.write('#  ' + barcode_string + '\n')
+
+    df.to_csv(storage, mode = 'a', sep='\t', header=True, index=False)
+        
     #main output file
-    df.to_csv(storage, sep='\t', header=True, index=False)
 
     names = [key for key in barcodes]
     counts = [nbarcode_inregions[key] for key in barcodes]
@@ -186,6 +204,9 @@ def sparse_count_reads_in_regions(bamfile, regions, storage, flank=0,
     df = pd.DataFrame({'barcodes':names, 'counts':counts})
 
     df.to_csv(storage + '.counts', sep='\t', header=True, index=False)
+    fwrite('total number of tags with barcodes: {}'.format(df.counts.sum()))
+    if log is not None:
+        f.close()
 
 
 def get_barcode_frequency_genomewide(bamfile, storage):
