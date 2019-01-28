@@ -15,7 +15,9 @@ adapters: /data/ohler/Scott/sciATACtest/sciAtacAdapters.fa
 
 # reference genomes to map against
 # the paths should point to the respective bowtie2 indices
-min_mapq: 0
+min_mapq: 
+ - 0
+ - 10
 min_counts_per_barcode: 0
 reference:
   dm6:
@@ -26,6 +28,11 @@ reference:
     bowtie2index: /data/akalin/wkopp/bowtie2_indices/danrer10/danrer10
     macs_gsize: dm
     removechroms: [chrM, _random, chrUn]
+    annotation: 
+      markergenes: ../extra/markergenes.bed
+      markerpromoters: ../extra/markerpromoters.bed
+      scrna_genebody: ../extra/scrna_genes.bed
+      scrna_genepromoters: ../extra/scrna_study_promoters.bed
   urchin:
     bowtie2index: /data/akalin/wkopp/bowtie2_indices/Spurp3/Spurp3.1
     macs_gsize: dm
@@ -35,6 +42,9 @@ reference:
 # binsizes to bin the reference genome
 binsize:
   - 10000
+  - 1000
+  - 2000
+  - 5000
 
 # flank to extend the macs2 peak summits at both sides
 peak_flank:
