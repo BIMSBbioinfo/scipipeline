@@ -14,9 +14,9 @@ rule read_mapping:
         genome=lambda wildcards: config['reference'][wildcards.reference]['bowtie2index'],
         paired=is_paired,
         filetype=_bowtie_input_type_read
-    threads: 10
+    threads: 20
     resources:
-       mem_mb=500
+       mem_mb=1000
     log: join(LOG_DIR, '{sample}_{reference}_bowtie2.log')
     run:
         cmd = 'bowtie2'

@@ -84,10 +84,10 @@ def plot_barcode_frequency_by_peak_percentage(barcode_frequency,
     Buenrostro et al. 2018 have used this information to filter out
     low quality cells.
     """
-    y = pd.read_csv(peak_frequency, sep='\t')
+    y = pd.read_csv(peak_frequency, sep='\t', skiprows=1)
     y = y.groupby('cell').sum()['count']
 
-    x = pd.read_csv(barcode_frequency, sep='\t')
+    x = pd.read_csv(barcode_frequency, sep='\t', skiprows=1)
     x = x.groupby('cell').sum()['count']
     y = y/x * 100.
 

@@ -73,8 +73,8 @@ else:
             # this allows us to use a single rule for
             # single or paired end.
             if params.paired:
-                cmd += " ln -s {params.target}_1.fastq.gz {params.target}.fastq.gz; "
+                cmd += " ln -s {params.target}/sample_1.fastq.gz {params.target}/sample.fastq.gz; "
             else:
-                cmd += " ln -s {params.target}.fastq.gz {params.target}_1.fastq.gz; "
-                cmd += " ln -s {params.target}.fastq.gz {params.target}_2.fastq.gz; "
+                cmd += " ln -s {params.target}/sample.fastq.gz {params.target}/sample_1.fastq.gz; "
+                cmd += " ln -s {params.target}/sample.fastq.gz {params.target}/sample_2.fastq.gz; "
             shell(cmd)
