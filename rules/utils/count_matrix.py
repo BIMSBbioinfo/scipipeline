@@ -65,7 +65,8 @@ def make_barcode_table(inbam, barcodetable):
 
 
 def sparse_count_reads_in_regions(bamfile, regions, storage, flank=0, log=None,
-                                  template_length=1000):
+                                  template_length=1000,
+                                  count_both_ends=False):
     """ This function obtains the counts per bins of equal size
     across the genome.
 
@@ -77,6 +78,8 @@ def sparse_count_reads_in_regions(bamfile, regions, storage, flank=0, log=None,
     contains paired-end or single-end reads.
     Paired-end reads are counted once at the mid-point between the two
     pairs while single-end reads are counted at the 5' end.
+    For paired-end reads it is optionally possible to count both read ends
+    by setting count_both_ends=True.
 
     Parameters
     ----------
@@ -92,6 +95,9 @@ def sparse_count_reads_in_regions(bamfile, regions, storage, flank=0, log=None,
         Assumed template length. This is used when counting paired-end reads
         at the mid-point and the individual reads do not overlap with
         the given region, but the mid-point does.
+    count_both_ends : bool
+        Indicates whether for paired-end sequences, the ends of both mates should
+        be counted separately. Default: False.
     """
 
     # Obtain the header information
@@ -141,18 +147,28 @@ def sparse_count_reads_in_regions(bamfile, regions, storage, flank=0, log=None,
     sdokmat = dok_matrix((nreg, len(barcodes)), dtype='int32')
     nbarcode_inregions = {key: 0 for key in barcodes}
 
-    tlen = template_length
+    if count_both_ends:
+        # if both ends are counted, template_length is irrelevant
+        tlen = 0
+    else:
+        tlen = template_length
+
     for idx, region in enumerate(regfile):
 
         iv = region.iv.copy()
         iv.start -= flank
         iv.end += flank
 
+        if iv.chrom not in genomesize:
+            # skip over peaks/ regions from chromosomes
+            # that are not contained in the bam file
+            continue
+
         fetchstart = max(iv.start - tlen, 0)
         fetchend =  min(iv.end + tlen, genomesize[iv.chrom])
 
         for aln in afile.fetch(iv.chrom, fetchstart, fetchend):
-            if aln.is_proper_pair and aln.is_read1:
+            if aln.is_proper_pair and aln.is_read1 and not count_both_ends:
 
                 pos = min(aln.reference_start, aln.next_reference_start)
 
@@ -162,8 +178,7 @@ def sparse_count_reads_in_regions(bamfile, regions, storage, flank=0, log=None,
                    sdokmat[idx, barcodes[aln.get_tag('RG') if use_group else 'dummy']] += 1
                    nbarcode_inregions[aln.get_tag('RG') if use_group else 'dummy'] += 1
 
-            if not aln.is_paired:
-                print('single-end')
+            if not aln.is_paired or count_both_ends:
                 # count single-end reads at 5p end
                 if not aln.is_reverse:
                     if aln.reference_start >= iv.start and aln.reference_start < iv.end:

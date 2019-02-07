@@ -139,6 +139,11 @@ reference:
       markergenes: path/to/markergenes.bed
       markerenhancers: path/to/markerenhancers.bed
 
+# Indictes that both ends of a paired-end alignment should be counted
+# separatly for the construction of the count matrix.
+# If True, both mates are counted at the 5' end. Otherwise,
+# the midpoint between the two mates is counted once.
+count_both_ends: True
 
 # binsizes to bin the reference genome
 # in order to construct the count matrices
