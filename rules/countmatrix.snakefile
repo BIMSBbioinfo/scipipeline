@@ -44,6 +44,8 @@ rule counting_reads_in_bins:
     output:
         countmatrix = join(OUT_DIR, '{sample}', '{reference}', 'countmatrix', 'genomebins_binsize{binsize}.minmapq{minmapq}.mincount{mincounts}.tab'),
         cellsum = join(OUT_DIR, '{sample}', '{reference}', 'countmatrix', 'genomebins_binsize{binsize}.minmapq{minmapq}.mincount{mincounts}.tab.counts')
+    params:
+        count_both_ends=config['count_both_ends']
     wildcard_constraints:
        minmapq='\d+', mincounts='\d+'
     log: join(LOG_DIR, 'genomebins_countmatrix_{sample}_{reference}.binsize{binsize}.minmap{minmapq}.mincount{mincounts}.log')
@@ -51,7 +53,7 @@ rule counting_reads_in_bins:
         mem_mb=10000
     run:
         try:
-            sparse_count_reads_in_regions(input.bams, input.bins, output.countmatrix, flank=0, log=log[0])
+            sparse_count_reads_in_regions(input.bams, input.bins, output.countmatrix, flank=0, log=log[0], count_both_ends=params.count_both_ends)
         except:
             exc_type, exc_value, exc_traceback = sys.exc_info()
             print("custom code exception:")
@@ -79,12 +81,14 @@ rule counting_reads_in_peaks:
             join(OUT_DIR, '{sample}', '{reference}', 'countmatrix', 'peakcounts_flank{flank}.minmapq{minmapq}.mincount{mincounts}.tab.counts')
     wildcard_constraints:
        minmapq='\d+', mincounts='\d+', flank='\d+'
+    params:
+        count_both_ends=config['count_both_ends']
     resources:
         mem_mb=10000
     log: join(LOG_DIR, 'peak_countmatrix_{sample}_{reference}.flank{flank}.minmap{minmapq}.mincount{mincounts}.log')
     run: 
         try:
-            sparse_count_reads_in_regions(input.bams, input.regions, output[0], flank=0, log=log[0])
+            sparse_count_reads_in_regions(input.bams, input.regions, output[0], flank=0, log=log[0], count_both_ends=params.count_both_ends)
         except:
             exc_type, exc_value, exc_traceback = sys.exc_info()
             print("custom code exception:")
@@ -112,12 +116,14 @@ rule counting_reads_in_extra_annotation:
         cellsum = join(OUT_DIR, '{sample}', '{reference}', 'countmatrix', 'extra_{annotation}.minmapq{minmapq}.mincount{mincounts}.tab.counts')
     wildcard_constraints:
        minmapq='\d+', mincounts='\d+'
+    params:
+        count_both_ends=config['count_both_ends']
     log: join(LOG_DIR, 'extra_countmatrix_{annotation}_{sample}_{reference}.minmap{minmapq}.mincount{mincounts}.log')
     resources:
         mem_mb=10000
     run:
         try:
-            sparse_count_reads_in_regions(input.bams, input.bins, output.countmatrix, flank=0, log=log[0])
+            sparse_count_reads_in_regions(input.bams, input.bins, output.countmatrix, flank=0, log=log[0], count_both_ends=params.count_both_ends)
         except:
             exc_type, exc_value, exc_traceback = sys.exc_info()
             print("custom code exception:")
