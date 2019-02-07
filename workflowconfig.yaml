@@ -29,6 +29,7 @@ reference:
     macs_gsize: dm
     removechroms: [chrM, _random, chrUn]
     annotation: 
+      bulkatacpeaks: ../extra/danRer10_B_macs2.q0.01_peaks.bed
       markergenes: ../extra/markergenes.bed
       markerpromoters: ../extra/markerpromoters.bed
       scrna_genebody: ../extra/scrna_genes.bed
@@ -38,6 +39,10 @@ reference:
     macs_gsize: dm
     removechroms: [chrM, _random, chrUn]
 
+# Indictes that both ends of a paired-end alignment should be counted
+# separatly. If True, both mates are counted at the 5' end. Otherwise,
+# the midpoint between the two mates is counted once.
+count_both_ends: True
 
 # binsizes to bin the reference genome
 binsize:
