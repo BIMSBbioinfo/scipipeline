@@ -76,7 +76,7 @@ rule counting_reads_in_peaks:
     input:
         bams = join(OUT_DIR, '{sample}', "{reference}", 'mapping', "sample.barcoded.minmapq{minmapq}.dedup.mincount{mincounts}.bam"),
         bai = join(OUT_DIR, '{sample}', "{reference}", 'mapping', "sample.barcoded.minmapq{minmapq}.dedup.mincount{mincounts}.bam.bai"),
-        regions = join(OUT_DIR, '{sample}', "{reference}", "peaks", "sample.minmapq{minmapq}.mincount{mincounts}.flank{flank}_summits.bed")
+        regions = join(OUT_DIR, '{sample}', "{reference}", "peaks", "sample.minmapq{minmapq}.mincount{mincounts}.flank{flank}_merged.bed")
     output: join(OUT_DIR, '{sample}', '{reference}', 'countmatrix', 'peakcounts_flank{flank}.minmapq{minmapq}.mincount{mincounts}.tab'),
             join(OUT_DIR, '{sample}', '{reference}', 'countmatrix', 'peakcounts_flank{flank}.minmapq{minmapq}.mincount{mincounts}.tab.counts')
     wildcard_constraints:

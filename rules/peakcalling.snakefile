@@ -3,21 +3,24 @@
 # ------------------------- #
 # report barcode frequencies
 
-rule peak_calling_on_aggregate:
+
+rule sort_for_peak_calling_on_aggregate:
     input: join(OUT_DIR, "{sample}", "{reference}", 'mapping', "sample.barcoded.minmapq{minmapq}.dedup.mincount{mincounts}.bam")
-    output: join(OUT_DIR, "{sample}", "{reference}", "peaks", "sample.minmapq{minmapq}.mincount{mincounts}_peaks.narrowPeak"), \
-            join(OUT_DIR, "{sample}", "{reference}", "peaks", "sample.minmapq{minmapq}.mincount{mincounts}_summits.bed")
-    params: name='sample.minmapq{minmapq}.mincount{mincounts}',
-            outdir = join(OUT_DIR, "{sample}", "{reference}", "peaks"),
-            foption = lambda wc: 'BAMPE' if is_paired(wc) else 'BAM',
-            gsize = lambda wc: config['reference'][wc.reference]['macs_gsize']
+    output: temp(join(OUT_DIR, "{sample}", "{reference}", 'mapping', "sample.barcoded.minmapq{minmapq}.dedup.mincount{mincounts}_namesort.bam"))
+    resources:
+      mem_mb=30000
+    shell:
+        "samtools sort -n {input} -o {output}"
+
+
+rule peak_calling_on_aggregate:
+    input: join(OUT_DIR, "{sample}", "{reference}", 'mapping', "sample.barcoded.minmapq{minmapq}.dedup.mincount{mincounts}_namesort.bam")
+    output: join(OUT_DIR, "{sample}", "{reference}", "peaks", "sample.minmapq{minmapq}.mincount{mincounts}_peaks.narrowPeak")
     resources:
       mem_mb=3000
     log: join(LOG_DIR, 'macs2_{sample}_{reference}_minmapq{minmapq}_mincount{mincounts}.log')
     shell:
-      " macs2 callpeak --name {params.name} -t {input} -f " +
-      "{params.foption}" +
-      " --nomodel --keep-dup all --outdir {params.outdir} --call-summits --gsize {params.gsize} 2> {log} "
+      " Genrich -t {input} -o {output} -j -y -v -g 175 -p 0.05  2> {log} "
 
 INPUT_ALL.append(expand(rules.peak_calling_on_aggregate.output, 
                         reference=config['reference'], 
@@ -28,9 +31,9 @@ INPUT_ALL.append(expand(rules.peak_calling_on_aggregate.output,
 rule merge_overlapping_peaks:
     """ Peak summits extended by flank, merged, sorted and trimmed to same size"""
     input: 
-       inbed = join(OUT_DIR, "{sample}", "{reference}", "peaks", "sample.minmapq{minmapq}.mincount{mincounts}_summits.bed"), \
+       inbed = join(OUT_DIR, "{sample}", "{reference}", "peaks", "sample.minmapq{minmapq}.mincount{mincounts}_peaks.narrowPeak"), \
        genomesize = join(OUT_DIR, '{sample}', "{reference}", 'mapping', "{reference}.genome")
-    output: join(OUT_DIR, "{sample}", "{reference}", "peaks", "sample.minmapq{minmapq}.mincount{mincounts}.flank{flk}_summits.bed")
+    output: join(OUT_DIR, "{sample}", "{reference}", "peaks", "sample.minmapq{minmapq}.mincount{mincounts}.flank{flk}_merged.bed")
     params:
        flks = lambda wc: wc.flk
     resources:
