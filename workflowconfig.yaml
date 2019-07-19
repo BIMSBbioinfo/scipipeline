@@ -11,19 +11,28 @@ barcodes:
 # flexbar will make use of them.
 # On the other hand, if the adapters are not know, remove the adapters field.
 # In this case, trim_galore will try to infer the adapter sequences.
-adapters: /data/ohler/Scott/Asli_Scripts/sciAtacAdapters.fa
+adapters: /fast/AG_Akalin/wkopp/alison_sciatac_2018/adapters/sciAtacAdapters.fa
 
 # reference genomes to map against
 # the paths should point to the respective bowtie2 indices
-min_mapq: 0
+min_mapq: 
+ - 0
+ - 10
+#min_counts_per_barcode: 0
 min_counts_per_barcode: 0
 reference:
-  dm6:
-    bowtie2index: /data/akalin/wkopp/bowtie2_indices/dm6/dm6
+  danrer10:
+    bowtie2index: /fast/AG_Akalin/wkopp/bowtie2_indices/danrer10/danrer10
     macs_gsize: dm
     removechroms: [chrM, _random, chrUn]
-  danrer10:
-    bowtie2index: /data/akalin/wkopp/bowtie2_indices/danrer10/danrer10
+    annotation: 
+      bulkatacpeaks: ../extra/danRer10_B_macs2.q0.01_peaks.bed
+  danrer11:
+    bowtie2index: /fast/AG_Ohler/Scott/danRer11/noAlt_danRer11
+    macs_gsize: dm
+    removechroms: [chrM, _random, chrUn]
+  urchin:
+    bowtie2index: /fast/AG_Akalin/wkopp/bowtie2_indices/Spurp3/Spurp3.1
     macs_gsize: dm
     removechroms: [chrM, _random, chrUn]
 
@@ -31,6 +40,7 @@ reference:
 # separatly. If True, both mates are counted at the 5' end. Otherwise,
 # the midpoint between the two mates is counted once.
 count_both_ends: True
+compute_library_complexity: False
 
 # binsizes to bin the reference genome
 binsize:
@@ -48,4 +58,4 @@ peak_flank:
 output_dir: /data/akalin/wkopp/sciatac_data/
 
 # this is the path to the java-based tool picard
-picard_jarpath: /data/akalin/wkopp/picard/build/libs/picard.jar
+picard_jarpath: /fast/AG_Akalin/wkopp/picard/build/libs/picard.jar
