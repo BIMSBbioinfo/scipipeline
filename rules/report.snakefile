@@ -149,7 +149,7 @@ if len(config['reference']) > 1:
 #
 rule make_multiqc_report:
     input: expand(join(OUT_DIR, "{sample}", "{reference}", "peaks", \
-                       "sample.minmapq{minmapq}.mincount{mincounts}_summits.bed"), \
+                       "sample.minmapq{minmapq}.mincount{mincounts}_peaks.narrowPeak"), \
                   reference=config['reference'], \
                   sample=samples.Name.tolist(), \
                   minmapq=config['min_mapq'], \
@@ -204,7 +204,7 @@ rule plot_deduplication_results:
         df.iloc[0].plot(kind='barh', figsize=(10,10))
         f.savefig(output[0])
 
-INPUT_ALL.append(expand(rules.plot_deduplication_results.output,
-                        reference=config['reference'],
-                        sample=samples.Name.tolist(),
-                        minmapq=config['min_mapq']))
+#INPUT_ALL.append(expand(rules.plot_deduplication_results.output,
+#                        reference=config['reference'],
+#                        sample=samples.Name.tolist(),
+#                        minmapq=config['min_mapq']))

@@ -107,17 +107,3 @@ rule split_reads_by_index:
                               params.min_mapq, params.max_mismatches, output[1])
 
 
-rule plot_demultiplex_summary:
-    input: join(LOG_DIR, '{sample}', '{reference}', \
-                'report', 'demulitplexed_alignments.tsv')
-    output: report(join(LOG_DIR, '{sample}', '{reference}', \
-                        'report', 'summary_barcoded_alignments.png'), \
-                   category='Alignment filtering')
-    resources:
-      mem_mb=1000
-    run:
-        plot_barplot_summary_statistics(input[0], output[0], 'Results: Demultiplexing')
-
-INPUT_ALL.append(expand(rules.plot_demultiplex_summary.output,
-                        reference=config['reference'],
-                        sample=samples.Name.tolist()))

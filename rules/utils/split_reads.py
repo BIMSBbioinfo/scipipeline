@@ -180,6 +180,64 @@ def split_reads_by_barcode(barcode_bams, treatment_bam,
         for icnt in log_content:
             f.write('{}\t{}\n'.format(icnt, log_content[icnt]))
 
+
+def deduplicate_reads(bamin, bamout, report, by_rg=True):
+    """This script deduplicates the original bamfile.
+    Deduplication removes reads align to the same position.
+    If the reads in the bamfile contain a RG tag and
+    by_rg=True, deduplication is done for each group separately.
+    Parameters
+    ----------
+    bamfile : str
+        Sorted bamfile containing barcoded reads.
+    output : str
+        Output path to a bamfile that contains the deduplicated reads.
+    by_rg : boolean
+        If True, the reads will be split by group tag.
+    """
+    bamfile = AlignmentFile(bamin, 'rb')
+    output = AlignmentFile(bamout, 'wb', template=bamfile)
+
+    log_counts = {'total':0, 'retained':0, 'removed':0}
+
+    # grep all barcodes from the header
+    #barcodes = set()
+    last_barcode = {}
+
+    for aln in bamfile.fetch():
+        # if previous hash matches the current has
+        # skip the read
+        val = (aln.reference_id, aln.reference_start,
+               aln.is_reverse, aln.tlen)
+        if aln.has_tag('RG') and by_rg:
+            rg = aln.get_tag('RG')
+        else:
+            rg = 'dummy'
+        log_counts['total'] += 1
+
+        if rg not in last_barcode:
+            output.write(aln)
+            # clear dictionary
+            last_barcode[rg] = val
+
+        if val == last_barcode[rg]:
+            log_counts['removed'] += 1
+            continue
+        else:
+            output.write(aln)
+            last_barcode[rg] = val
+
+        log_counts['retained'] += 1
+
+        if (log_counts['retained'] % 1000000) == 0:
+            print("Processed {}/{} total/removed reads".format(log_counts['total'], log_counts['removed']))
+
+    #write log file
+    with open(report, 'w') as f:
+        f.write('\tcounts\n')
+        for icnt in log_counts:
+            f.write('{}\t{}\n'.format(icnt, log_counts[icnt]))
+
 if __name__ == '__main__':
     barcode_bams = ['pseudo_genome_I{}_sorted.bam'.format(i) for i in [1,2,3,4]]
     treatment_bam = 'test.input.bam'
