@@ -15,7 +15,7 @@
                    "python-scipy"
                    "python-seaborn"
                    "python-h5py"
-                   "htseq"
+                   "python-pybedtools"
                    "deeptools"
                    "multiqc"
                    "glibc-locales"

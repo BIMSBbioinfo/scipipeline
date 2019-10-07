@@ -2,7 +2,8 @@ import numpy as np
 import pandas as pd
 from scipy.sparse import dok_matrix, coo_matrix
 from pysam import AlignmentFile
-from HTSeq import BED_Reader
+from pybedtools import BedTool
+#from HTSeq import BED_Reader
 
 def make_beds_for_intervalsize(bamfile, binsize, storage):
     """ Genome intervals for binsize.
@@ -120,9 +121,9 @@ def sparse_count_reads_in_regions(bamfile, regions, storage, flank=0, log=None,
     fwrite('found {} chromosomes'.format(len(genomesize)))
 
     nreg = 0
-    regfile = BED_Reader(regions)
-    for _ in regfile:
-        nreg += 1
+    regfile = BedTool(regions)
+    
+    nreg = len(regfile)
 
     fwrite('number of regions to collect counts from: {}'.format(nreg))
 
@@ -153,9 +154,8 @@ def sparse_count_reads_in_regions(bamfile, regions, storage, flank=0, log=None,
     else:
         tlen = template_length
 
-    for idx, region in enumerate(regfile):
+    for idx, iv in enumerate(regfile):
 
-        iv = region.iv.copy()
         iv.start -= flank
         iv.end += flank
 
