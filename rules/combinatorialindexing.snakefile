@@ -94,7 +94,7 @@ rule split_reads_by_index:
                                 barcode=samples[samples.Name==wc.sample].barcodes.tolist()[0].split(';')),
        read_aln=join(OUT_DIR, '{sample}', '{reference}', 'mapping', 'sample.namesorted.bam')
     output: join(OUT_DIR, '{sample}', "{reference}", 'mapping', "sample.barcoded.bam"),
-            join(LOG_DIR, '{sample}', '{reference}', 'report', 'summary_barcoded_alignments.tsv')
+            join(OUT_DIR, '{sample}', '{reference}', 'report', 'summary_barcoded_alignments.tsv')
     resources:
         mem_mb=1000
     params:
